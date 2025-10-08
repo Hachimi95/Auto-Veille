@@ -50,19 +50,24 @@ pdf_deps_check() {
 }
 
 restart_service() {
-  # If you manage the app with systemd, ensure a service exists, e.g., auto-veille.service
+  # Prefer systemd if a unit exists; otherwise fallback to gunicorn
   if command -v systemctl >/dev/null 2>&1; then
-    sudo systemctl restart auto-veille.service || true
-    sudo systemctl status auto-veille.service --no-pager || true
+    if systemctl list-unit-files | grep -q '^auto-veille.service'; then
+      sudo systemctl restart auto-veille.service || true
+      sudo systemctl status auto-veille.service --no-pager || true
+      return 0
+    fi
   fi
+  echo "ℹ️ No systemd unit 'auto-veille.service' found. Starting fallback with gunicorn..."
+  stop_fallback || true
+  start_fallback
 }
 
 start_fallback() {
-  # Fallback: start gunicorn if no systemd. Adjust module/app as needed.
   # shellcheck disable=SC1091
   source .venv/bin/activate
   export FLASK_ENV=${FLASK_ENV:-production}
-  PKG_BIND=${BIND_ADDR:-"0.0.0.0:8000"}
+  PKG_BIND=${BIND_ADDR:-"127.0.0.1:8000"}
   if command -v gunicorn >/dev/null 2>&1; then
     nohup gunicorn -b "$PKG_BIND" app:app >/tmp/auto-veille.out 2>&1 &
     echo $! > /tmp/auto-veille.pid
@@ -92,7 +97,7 @@ update() {
   pdf_deps_check
   echo "🗃️  Running DB setup (if any)..."
   migrate_db
-  echo "🚀 Restarting service (if configured)..."
+  echo "🚀 Restarting service or starting fallback..."
   restart_service
   echo "✅ Update complete."
 }
