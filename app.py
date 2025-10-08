@@ -13,7 +13,7 @@ load_dotenv()
 from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
 from auto_bulletin.mitigation import MitigationHandler
 from auto_bulletin.description import DescriptionHandler
-from auto_bulletin.auto_pdf import generate_pdf_from_json
+# from auto_bulletin.auto_pdf import generate_pdf_from_json  # ← remove Windows-hard import
 import tempfile
 import shutil
 # If you use pdfkit for HTML -> PDF
@@ -751,9 +751,11 @@ def auto_bulletin():
                             pdf_path = generate_pdf_from_json(tmp_json.name, bulletin_id)
                             word_path = pdf_path.replace('.pdf', '.docx')
                             generated_files = {
-                                'pdf': os.path.basename(pdf_path),
-                                'word': os.path.basename(word_path)
+                                'pdf': os.path.basename(pdf_path)
                             }
+                            # Only include Word if it really exists (Windows path)
+                            if os.path.exists(word_path):
+                                generated_files['word'] = os.path.basename(word_path)
                         extracted_data = None
                     else:
                         # Format mitigation data for display
