@@ -21,14 +21,6 @@ except Exception as _pdf_import_err:
     def generate_pdf_from_json(*_args, **_kwargs):
         raise RuntimeError(f"PDF generation module import failed: {_pdf_import_err}")
 
-import tempfile
-import shutil
-# If you use pdfkit for HTML -> PDF
-try:
-    import pdfkit
-except ImportError:
-    pdfkit = None
-
 app = Flask(__name__)
 
 # Configure logging to stdout so systemd/journalctl captures it
@@ -40,19 +32,31 @@ logging.getLogger().setLevel(os.getenv('LOG_LEVEL', 'INFO').upper())
 app.logger.setLevel(logging.getLogger().level)
 logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
-# Optional health endpoint
+# Health endpoint
 @app.route('/_health')
 def _health():
     return jsonify(ok=True), 200
 
 def sanitize_extracted_data(data: dict) -> dict:
-    # Trim strings and elements in lists safely (prevents malformed data downstream)
+    # Trim strings and elements inside lists
     for key in list(data.keys()):
         if isinstance(data[key], str):
             data[key] = data[key].strip()
         elif isinstance(data[key], list):
             data[key] = [x.strip() if isinstance(x, str) else x for x in data[key]]
     return data
+
+def _parse_mitigation_details(details: dict) -> dict:
+    # Helper to keep indentation consistent and logic readable
+    parsed = {}
+    if isinstance(details, dict):
+        if 'recommendation' in details:
+            parsed['recommendation'] = details['recommendation']
+        versions = details.get('versions', [])
+        if isinstance(versions, list):
+            versions = [v.strip() if isinstance(v, str) else v for v in versions]
+        parsed['versions'] = versions
+    return parsed
 
 UPLOAD_FOLDER = 'uploads'
 EXPORT_FOLDER = 'exports'
@@ -791,10 +795,10 @@ def auto_bulletin():
                             data['Mitigations_display'] = format_mitigation_for_display(data['Mitigations'])
                         extracted_data = data
                 else:
-                    extraction_error = 'Impossible d\'extraire les données du bulletin.'
+                    extraction_error = "Impossible d'extraire les données du bulletin."
             except Exception as e:
                 app.logger.exception("Auto-bulletin generation failed")
-                extraction_error = f'Erreur lors de l\'extraction: {e}'
+                extraction_error = f"Erreur lors de l'extraction: {e}"
     return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
 
 @app.route('/dashboard')
@@ -923,9 +927,5 @@ def auto_patch():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    return render_template('auto_patch.html', error=error, message=message}
-
-
-
 if __name__ == '__main__':
     app.run(debug=True)
