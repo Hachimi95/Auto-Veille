@@ -3,6 +3,7 @@ import json
 import re
 import platform
 import shutil
+import subprocess
 from datetime import datetime
 from docx import Document
 from docx.shared import Pt, RGBColor
@@ -10,48 +11,6 @@ from docx.enum.text import WD_LINE_SPACING, WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-# Linux/portable HTML->PDF fallback
-try:
-    import pdfkit
-except Exception:
-    pdfkit = None
-
-def get_pdfkit_config():
-    if not pdfkit:
-        return None
-    import shutil
-    candidates = []
-    # 1) .env override
-    env_path = os.getenv('WKHTMLTOPDF_PATH')
-    if env_path:
-        candidates.append(env_path)
-    # 2) PATH discovery (may be empty under systemd)
-    found = shutil.which('wkhtmltopdf')
-    if found:
-        candidates.append(found)
-    # 3) Common Linux install locations
-    candidates += [
-        '/usr/bin/wkhtmltopdf',
-        '/usr/local/bin/wkhtmltopdf',
-        '/snap/bin/wkhtmltopdf'
-    ]
-    # Deduplicate while preserving order
-    seen = set()
-    filtered = []
-    for p in candidates:
-        if p and p not in seen:
-            seen.add(p)
-            filtered.append(p)
-    # Try to build a configuration with the first working candidate
-    for p in filtered:
-        try:
-            if os.path.exists(p) and os.access(p, os.X_OK):
-                return pdfkit.configuration(wkhtmltopdf=p)
-        except Exception:
-            continue
-    return None
-
-# --- Existing helper functions used by the Word/Windows flow ---
 def convert_date_format(french_date):
     """Convert French date to dd/mm/yyyy format"""
     try:
@@ -341,16 +300,17 @@ def _build_base_filename(advisory_data, bulletin_id):
     base = "".join(x for x in base if x.isalnum() or x in ['-', ' ', '_']).rstrip()
     return base or f"{bulletin_id}"
 
-def _windows_generate_pdf(advisory_data, base_filename_display):
-    # Import Windows automation only when needed
-    import pythoncom  # type: ignore
-    import win32com.client  # type: ignore
-
+def _generate_docx(advisory_data, base_filename_display):
+    """
+    Build the DOCX from template5.docx using the same placeholder logic as before.
+    Returns the absolute path to the saved DOCX.
+    """
     doc = Document(os.path.join("auto_bulletin", "template5.docx"))
 
-    # Map placeholders (same as existing)
+    # Date mapping for template fields (same as before)
     date_value = advisory_data.get("Date", "")
     date_value = convert_date_format(date_value) if date_value else ""
+
     placeholders = {
         "[titre]": advisory_data.get("titre", ""),
         "[CVE2]": "\n".join(advisory_data.get("CVEs ID", [])),
@@ -366,6 +326,7 @@ def _windows_generate_pdf(advisory_data, base_filename_display):
         "[risques]": "\n".join([r + "\n-" for r in advisory_data.get("risques", [])])[:-2]
     }
 
+    # Apply replacements
     fix_table_properties(doc)
     for paragraph in doc.paragraphs:
         replace_placeholders_in_paragraph(paragraph, placeholders)
@@ -379,88 +340,73 @@ def _windows_generate_pdf(advisory_data, base_filename_display):
     os.makedirs(out_dir, exist_ok=True)
     docx_path = os.path.join(out_dir, f"{base_filename_display}.docx")
     doc.save(docx_path)
+    return os.path.abspath(docx_path)
 
-    pdf_path = os.path.join(out_dir, f"{base_filename_display}.pdf")
+def _windows_generate_pdf(advisory_data, base_filename_display):
+    # Import Windows automation only when needed
+    import pythoncom  # type: ignore
+    import win32com.client  # type: ignore
+
+    # Build DOCX first (same template flow)
+    docx_path = _generate_docx(advisory_data, base_filename_display)
+
+    # Convert to PDF via Word COM
+    pdf_path = os.path.join("auto_bulletin", f"{base_filename_display}.pdf")
     pythoncom.CoInitialize()
     try:
         word = win32com.client.Dispatch("Word.Application")
-        word_doc = word.Documents.Open(os.path.abspath(docx_path))
+        word_doc = word.Documents.Open(docx_path)
         word_doc.SaveAs(os.path.abspath(pdf_path), FileFormat=17)  # PDF
     finally:
-        word_doc.Close()
+        try:
+            word_doc.Close()
+        except Exception:
+            pass
         word.Quit()
         pythoncom.CoUninitialize()
 
     return pdf_path
 
 def _linux_generate_pdf(advisory_data, base_filename_display):
-    cfg = get_pdfkit_config()
-    if not pdfkit or not cfg:
+    """
+    Linux path: generate the DOCX from the Word template, then convert to PDF via LibreOffice headless.
+    """
+    # 1) Build DOCX (keeps your template intact)
+    docx_path = _generate_docx(advisory_data, base_filename_display)
+    out_dir = os.path.dirname(docx_path)
+    pdf_path = os.path.join(out_dir, f"{base_filename_display}.pdf")
+
+    # 2) Find LibreOffice/soffice
+    soffice = shutil.which('soffice') or shutil.which('libreoffice') or shutil.which('lowriter')
+    if not soffice:
         raise RuntimeError(
-            "PDF generation not available on Linux. Ensure wkhtmltopdf is installed "
-            "(sudo apt-get install -y wkhtmltopdf) and set WKHTMLTOPDF_PATH in .env if needed. "
-            "Tried: $WKHTMLTOPDF_PATH, PATH, /usr/bin, /usr/local/bin, /snap/bin."
+            "LibreOffice (soffice) not found for DOCX->PDF conversion on Linux.\n"
+            "Install it, e.g.:\n"
+            "  sudo apt-get update && sudo apt-get install -y libreoffice-core libreoffice-writer fonts-dejavu\n"
+            "Then retry."
         )
 
-    def list_html(items):
-        if not items:
-            return "<p>-</p>"
-        if isinstance(items, list):
-            return "<ul>" + "".join(f"<li>{str(x)}</li>" for x in items) + "</ul>"
-        return f"<p>{str(items)}</p>"
+    # 3) Convert DOCX -> PDF headlessly
+    try:
+        proc = subprocess.run(
+            [soffice, '--headless', '--convert-to', 'pdf', '--outdir', out_dir, docx_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"LibreOffice conversion failed: {e.stderr or e.stdout}") from e
 
-    titre = advisory_data.get('titre', base_filename_display)
-    date_str = advisory_data.get('Date', '')
-    desc = advisory_data.get('Description', '')
-    produits = advisory_data.get('Produits affectés', [])
-    cves = advisory_data.get('CVEs ID', [])
-    refs = advisory_data.get('Références', [])
-    risks = advisory_data.get('risques', [])
-    score = advisory_data.get('score', '')
-    delai = advisory_data.get('Delai', '')
+    if not os.path.exists(pdf_path):
+        # Some distros change output name; attempt to locate a PDF in out_dir matching prefix
+        candidates = [f for f in os.listdir(out_dir) if f.lower().endswith('.pdf') and f.startswith(base_filename_display)]
+        if candidates:
+            pdf_path = os.path.join(out_dir, candidates[0])
+        else:
+            raise RuntimeError("DOCX created but PDF not found after conversion.")
 
-    html = f"""
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body {{ font-family: Arial, sans-serif; padding: 24px; }}
-          h1 {{ font-size: 20px; margin-bottom: 8px; }}
-          h2 {{ font-size: 16px; margin-top: 18px; }}
-          .meta p {{ margin: 2px 0; }}
-          ul {{ margin-top: 6px; }}
-        </style>
-      </head>
-      <body>
-        <h1>{titre}</h1>
-        <div class="meta">
-          <p><strong>ID:</strong> {base_filename_display}</p>
-          <p><strong>Date:</strong> {date_str}</p>
-          <p><strong>Score:</strong> {score}</p>
-          <p><strong>Délai:</strong> {delai}</p>
-        </div>
-        <h2>Description</h2>
-        <p>{desc}</p>
-        <h2>Produits affectés</h2>
-        {list_html(produits)}
-        <h2>CVEs</h2>
-        {list_html(cves)}
-        <h2>Risques</h2>
-        {list_html(risks)}
-        <h2>Références</h2>
-        {list_html(refs)}
-      </body>
-    </html>
-    """
-
-    out_dir = "auto_bulletin"
-    os.makedirs(out_dir, exist_ok=True)
-    pdf_path = os.path.join(out_dir, f"{base_filename_display}.pdf")
-    pdfkit.from_string(html, pdf_path, configuration=cfg)
     return pdf_path
 
 def generate_pdf_from_json(json_path, bulletin_id):
-    """Generate a PDF from JSON. Windows: Word template + win32com; Linux: pdfkit fallback."""
+    """Generate a PDF from JSON. Windows: Word template + win32com; Linux: LibreOffice headless conversion."""
     try:
         with open(json_path, "r", encoding="utf-8") as file:
             advisory_data = json.load(file)
@@ -469,13 +415,8 @@ def generate_pdf_from_json(json_path, bulletin_id):
 
         base_filename_display = _build_base_filename(advisory_data, bulletin_id)
 
-        is_windows = platform.system().lower().startswith('win')
-        if is_windows:
-            try:
-                return _windows_generate_pdf(advisory_data, base_filename_display)
-            except Exception as e:
-                # Fallback to Linux/HTML if Word automation fails
-                return _linux_generate_pdf(advisory_data, base_filename_display)
+        if platform.system().lower().startswith('win'):
+            return _windows_generate_pdf(advisory_data, base_filename_display)
         else:
             return _linux_generate_pdf(advisory_data, base_filename_display)
 
