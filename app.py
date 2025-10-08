@@ -13,7 +13,13 @@ load_dotenv()
 from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
 from auto_bulletin.mitigation import MitigationHandler
 from auto_bulletin.description import DescriptionHandler
-# from auto_bulletin.auto_pdf import generate_pdf_from_json  # ← remove Windows-hard import
+# Ensure the symbol exists even if the import fails for any reason
+try:
+	# auto_bulletin/auto_pdf.py is now OS-aware (Windows/Word or Linux/wkhtmltopdf)
+	from auto_bulletin.auto_pdf import generate_pdf_from_json
+except Exception as _pdf_import_err:
+	def generate_pdf_from_json(*_args, **_kwargs):
+		raise RuntimeError(f"PDF generation is unavailable: {_pdf_import_err}")
 import tempfile
 import shutil
 # If you use pdfkit for HTML -> PDF
