@@ -1,0 +1,144 @@
+{
+  "Google Chrome": {
+    "recommendation": "Il est recommandé de mettre à jour Google Chrome vers :",
+    "versions": [
+      "version 130.0.6723.116/.117 ou ultérieur pour Windows",
+      "version 130.0.6723.116 ou ultérieur pour Linux"
+    ]
+  },
+  "Oracle Java SE": {
+    "recommendation": "Il est recommandé de mettre à jour Oracle Java SE vers:",
+    "versions": [
+      "version 8u421 ou ultérieure", 
+      "version 11.0.24 ou ultérieure"
+    ]
+  },
+  "Microsoft Edge": {
+    "recommendation": "Il est recommandé de mettre à jour Microsoft Edge vers :",
+    "versions": [
+      "version 129.0.2903.23 ou ultérieure"
+    ]
+  },
+  "PHP": {
+    "recommendation": "Il est recommandé de mettre à jour PHP vers les versions suivantes :",
+    "versions": [
+      "version 7.1.31 ou ultérieure",
+      "version 7.2.26 ou ultérieure",
+      "version 7.3.14 ou ultérieure"
+    ]
+  },
+  "PostgreSQL": {
+    "recommendation": "Il est recommandé de mettre à jour PostgreSQL vers les versions suivantes :",
+    "versions": [
+      "version 13 vers 13.1 ou ultérieure",
+      "version 9 vers 9.5 ou ultérieure",
+      "version 11 vers 11.9 ou ultérieure"
+    ]
+  },
+  "Grafana": {
+    "versions": [
+      "version 11.3.x vers #<10.3.0+security-01># ou ultérieure",
+      "version 11.2.x vers #<10.2.3+security-01># ou ultérieure"
+    ]
+  },
+  "Veeam": {
+    "recommendation": "Il est recommandé de mettre à jour Veeam Backup  vers la version suivante :",
+    "versions": [
+      "version 12.2.0.334 ou ultérieure"
+    ]
+  },
+  "Apex One": {
+    "recommendation": "Mettre à jour Apex One vers la version :",
+    "versions": [
+      "SP1 CD (b11980) ou ultérieure."
+    ]
+  },
+  "Drupal": {
+    "recommendation": "Il est recommandé de mettre à jour Drupal vers les versions suivantes :",
+    "versions": [
+      "version 8.0.10 ou ultérieure",
+      "version 8.4.9 ou ultérieure",
+      "version 8.2.8 ou ultérieure"
+    ]
+  },
+  "Apple": {
+    "recommendation": "Mise à jour les produits Apple par les versions suivantes:",
+    "versions": [
+      "visionOS version 2.1.0 ou ultérieures",
+      "macOS Sequoia version 11.8.1 ou ultérieures",
+      "Safari version 12.3.1 ou ultérieures",
+      "iOS et iPadOS version 13.2.1 ou ultérieures",
+      "iOS et iPadOS version 11..2 ou ultérieures"
+    ]
+  },
+  "Mozilla": {
+    "recommendation": "Mise à jour vers les versions:",
+    "versions": [
+	"Firefox ESR versions 112.17 ou ultérieur",
+	"Firefox ESR versions 122.4 ou ultérieur",
+	"Firefox versions 130 ou ultérieur",
+	"Focus pour iOS versions 130 ou ultérieur",
+	"Thunderbird versions 112.4 ou ultérieur",
+	"Thunderbird versions 122 ou ultérieur"
+    ]
+  },
+  "Cisco": {
+    "recommendation": "Veuillez se référer aux bulletins de sécurité de Cisco pour mettre à jours vos équipements"
+  
+   },
+  "Zabbix": {
+    "recommendation": "Mise à jour Zabbix vers la version:",
+    "versions": [
+	"Zabbix versions 4.0.43rc1 ou ultérieures",
+	"Zabbix versions 5.0.35rc1 ou ultérieures",
+	"Zabbix versions 5.4.20rc1 ou ultérieures",
+	"Zabbix versions 6.0.4rc1 ou ultérieures"
+    ]
+  },
+ "Adobe": {
+    "recommendation": "Mise à jour des produits Adobe par:",
+    "versions": [
+	"Acrobat 2024 versions 24.001.30225 ou ultérieures.",
+	" Acrobat Reader 2020 versions 20.005.30748 ou ultérieures."
+    ]
+  },
+  "Apache": {
+    "recommendation": "Mise à jour Apache Tomcat vers la version:",
+    "versions": [
+	"Apache Tomcat versions 10.x antérieures à 10.1.33",
+	"Apache Tomcat versions 9.x antérieures à 9.0.97"
+    ]
+  },
+  "Trend Micro": {
+    "versions": [
+	"Mettre à jour Apex One vers la version SP1 CP (b12980) ou ultérieure.",
+	"Appliquer le correctif du mois de Mai à Apex One as a Service (Agent Version: 14.0.13139)."
+    ]
+  },
+  "Fortinet": {
+    "recommendation": "Mise à jour vers les versions :",
+    "versions": [
+	"FortiOS 7.2.x versions 7.2.7 ou ultérieure",
+	"FortiSwitchManager 7.0.x versions 7.0.4 ou ultérieure",
+	"FortiManager 7.0 versions 7.0.9 ou ultérieure"
+    ]
+  },
+"Spring": {
+    "recommendation": "Mise à jour vers les versions :",
+    "versions": [
+	"Spring Framework version 5.3.41 ou ultérieure"
+    ]
+  },
+"Sophos": {
+    "recommendation": "Mise à jour Sophos Firewall vers les versions :",
+    "versions": [
+	"Sophos Firewall versions: v20.0 EAP1"
+    ]
+  },
+ "General": {
+    "recommendation": "Mise à jour vers les versions :",
+    "versions": [
+	"ProductXXX version XXX ou ultérieure"
+    ]
+  }
+}

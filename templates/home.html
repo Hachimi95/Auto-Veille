@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}Accueil | Auto-Veille{% endblock %}
+{% block content %}
+<style>
+  .home-hero {
+    position: relative;
+    background: radial-gradient(1200px 600px at 10% -10%, rgba(95,36,159,.08), transparent 60%),
+                radial-gradient(900px 500px at 110% 10%, rgba(16,185,129,.08), transparent 50%),
+                var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 42px 28px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .home-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.02));
+    pointer-events: none;
+    border-radius: inherit;
+  }
+  /* Add subtle grid overlay */
+  .home-hero::before {
+    content:"";
+    position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:
+      repeating-linear-gradient(to right, rgba(15,23,42,0.03) 0 1px, transparent 1px 24px),
+      repeating-linear-gradient(to bottom, rgba(15,23,42,0.03) 0 1px, transparent 1px 24px);
+    mix-blend-mode: multiply; opacity:.6;
+  }
+  /* Soft glow accent */
+  .halo {
+    position:absolute; top:-70px; right:-90px; width:280px; height:280px;
+    background: radial-gradient(60% 60% at 40% 40%, rgba(95,36,159,.18), rgba(16,185,129,.12) 55%, transparent 70%);
+    filter: blur(22px); pointer-events:none;
+  }
+
+  .home-wrap { max-width: 980px; margin: 0 auto; }
+  .home-title {
+    margin: 0 0 10px 0;
+    font-size: 2.1rem;
+    line-height: 1.2;
+    color: #0f172a;
+    font-weight: 750;
+    letter-spacing: 0.1px;
+    font-family: 'Segoe UI Variable','Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+  }
+
+  /* Accent line under title */
+  .accent-line {
+    width:56px; height:4px; border-radius:4px; margin:8px 0 0 0;
+    background: linear-gradient(90deg, var(--primary-color), #10b981);
+  }
+
+  .home-subtitle {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.08rem;
+  }
+
+  /* Replace chips with compact tags */
+  .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .tag {
+    display:inline-flex; align-items:center; gap:8px;
+    padding:6px 10px; border-radius:999px; font-weight:600; font-size:.88rem;
+    background:#fff; color:#111827; border:1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  .section {
+    margin-top: 18px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .features {
+    display:grid; gap:14px; grid-template-columns: 1fr;
+  }
+  @media (min-width: 840px) { .features { grid-template-columns: repeat(3, 1fr); } }
+  .feature {
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    background: linear-gradient(180deg, rgba(15,23,42,0.02), rgba(15,23,42,0.0));
+  }
+  .feature .head { display:flex; align-items:center; gap:10px; }
+  .feature .icon {
+    width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    background:#f3f4f6; color:var(--primary-color);
+  }
+  .feature h3 { margin: 2px 0 6px 0; font-size: 1.02rem; color:#0f172a; }
+  .feature p { margin: 0; color:#4b5563; font-size: .95rem; }
+
+  /* Update stats styling to be cleaner */
+  .stats {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:12px;
+    border:1px solid var(--border); border-radius:12px; padding:14px;
+    background: var(--card-bg);
+  }
+  .stat { text-align:center; }
+  .stat .num { font-weight:800; font-size:1.1rem; color:#0f172a; }
+  .stat .label { color:#6b7280; font-size:.9rem; }
+</style>
+
+<!-- Hero -->
+<section class="home-hero">
+  <div class="halo"></div>
+  <div class="home-wrap">
+    <h1 class="home-title">Auto‑Veille</h1>
+    <div class="accent-line"></div>
+    <p class="home-subtitle">Operational vulnerability intelligence for teams—collect, normalize, and report with consistency.</p>
+    <!-- Replace chips with compact tags -->
+    <div class="meta">
+      <span class="tag"><i class="fa-solid fa-inbox"></i> Intake</span>
+      <span class="tag"><i class="fa-solid fa-layer-group"></i> Tracking</span>
+      <span class="tag"><i class="fa-regular fa-file-lines"></i> Reporting</span>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section">
+  <div class="features">
+    <div class="feature">
+      <div class="head">
+        <div class="icon"><i class="fa-solid fa-inbox"></i></div>
+        <h3>Intake</h3>
+      </div>
+      <p>Structured capture with normalized fields ready for work.</p>
+    </div>
+    <div class="feature">
+      <div class="head">
+        <div class="icon"><i class="fa-solid fa-layer-group"></i></div>
+        <h3>Tracking</h3>
+      </div>
+      <p>Clean filters and statuses that keep remediation on track.</p>
+    </div>
+    <div class="feature">
+      <div class="head">
+        <div class="icon"><i class="fa-regular fa-file-lines"></i></div>
+        <h3>Reporting</h3>
+      </div>
+      <p>Export-ready outputs aligned to client formats.</p>
+    </div>
+  </div>
+
+  <!-- Refined stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="num">3</div>
+      <div class="label">Core modules</div>
+    </div>
+    <div class="stat">
+      <div class="num">60s</div>
+      <div class="label">Filter to export</div>
+    </div>
+    <div class="stat">
+      <div class="num">100%</div>
+      <div class="label">Format alignment</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block title %}Clients | Auto-Veille{% endblock %}
+{% block content %}
+<section class="container" style="max-width:900px;margin:0 auto; padding:2rem; background:var(--card-bg); border-radius:var(--radius); box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+    <h2 style="color:var(--primary-color);margin:0;">Clients & Products Management</h2>
+    <button class="btn primary-btn" onclick="showAddClientModal()">+ Add Client</button>
+  </div>
+  <div class="table-responsive" style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;background:var(--card-bg);border-radius:var(--radius);box-shadow:0 2px 4px rgba(0,0,0,0.08);">
+      <thead>
+        <tr style="background:var(--primary-color);color:#fff;">
+          <th style="padding:12px 10px;text-align:left;">Client</th>
+          <th style="padding:12px 10px;text-align:left;">Products & Responsible Resolution</th>
+          <th style="padding:12px 10px;text-align:center;width:160px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client in clients %}
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:10px 10px;font-weight:600;">{{ client.name }}</td>
+          <td style="padding:10px 10px;">
+            <ul style="margin:0;padding-left:18px;list-style:square;color:var(--secondary-color);">
+              {% for product in products if product.client_id == client.id %}
+                <li style="margin-bottom:4px;">
+                  <strong>{{ product.name }}</strong>
+                  {% if product.responsible_resolution %}
+                    <span style="color:#666;font-size:0.9em;"> - {{ product.responsible_resolution }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td style="padding:10px 10px;text-align:center;">
+            <button class='btn secondary-btn' onclick='showEditClientModal({{ client.id }}, {{ client.name|tojson }}, {{ products|selectattr("client_id", "equalto", client.id)|list|tojson }})'>Edit</button>
+            <button class='btn delete-btn' onclick='showDeleteClientModal({{ client.id }}, {{ client.name|tojson }})'>Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<style>
+  .primary-btn {
+    font-size: 1em;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    background: var(--primary-color);
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+  }
+  .primary-btn:hover, .primary-btn:focus {
+    background: var(--secondary-color);
+    outline: none;
+  }
+  .secondary-btn {
+    font-size: 0.9em;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    background: #555;
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+  }
+  .secondary-btn:hover, .secondary-btn:focus {
+    background: #444;
+    outline: none;
+  }
+  .delete-btn {
+    font-size: 0.9em;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    background: #e74c3c;
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+  }
+  .delete-btn:hover, .delete-btn:focus {
+    background: #c0392b;
+    outline: none;
+  }
+</style>
+<script>
+function showAddClientModal() {
+  showModal(`<h3 style='margin-bottom:1rem;color:var(--primary-color);'>Add Client</h3><form id='add-client-form' style='display:flex;flex-direction:column;gap:14px;'>
+    <input name='name' placeholder='Client name' required style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
+    <button class='btn primary-btn' type='submit'>Add</button>
+  </form>`);
+  document.getElementById('add-client-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const name = this.name.value.trim();
+    if (!name) return showToast('Client name required', 'error');
+    await fetch('/clients', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    hideModal(); location.reload();
+  };
+}
+
+function showEditClientModal(id, name, products) {
+  let productInputs = '';
+  if (products && products.length) {
+    productInputs = products.map(p => `
+      <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;'>
+        <input type='text' name='product_name' data-product-id='${p.id}' value='${p.name}' placeholder='Product name' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
+        <input type='text' name='responsible_resolution' data-product-id='${p.id}' value='${p.responsible_resolution || "SOC Team"}' placeholder='Responsible Resolution' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
+        <button type='button' class='btn delete-btn' style='padding:4px 10px;font-size:0.95em;' onclick='deleteProductFromEdit(${p.id}, this)'>Delete</button>
+      </div>
+    `).join('');
+  }
+  let modalHtml = `
+    <div style='max-width:680px'>
+      <h3 style='margin:0 0 12px 0;color:var(--primary-color);font-size:1.3em;'>Edit Client</h3>
+      <form id='edit-client-form' style='display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow:auto;padding-right:4px;'>
+        <input name='name' value='${name}' required style='padding:10px;border-radius:10px;border:1px solid #ddd;'>
+        <div id='products-list' style='margin-bottom:4px;'>
+          <label style='font-weight:600;margin-bottom:6px;display:block;'>Products & Responsible Resolution:</label>
+          ${productInputs}
+        </div>
+        <div style='display:flex;gap:8px;justify-content:flex-end;align-items:center;'>
+          <button type='button' class='btn secondary-btn' onclick='addProductInput()'>+ Add Product</button>
+          <button class='btn primary-btn' type='submit'>Save</button>
+        </div>
+      </form>
+    </div>
+  `;
+  showModal(modalHtml);
+  document.getElementById('edit-client-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const newName = this.name.value.trim();
+    if (!newName) return showToast('Client name required', 'error');
+    await fetch(`/clients/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName})});
+    // Update products
+    const productInputs = this.querySelectorAll('input[name="product_name"]');
+    for (const input of productInputs) {
+      const prodId = input.getAttribute('data-product-id');
+      const prodName = input.value.trim();
+      const responsibleInput = input.parentElement.querySelector('input[name="responsible_resolution"]');
+      const responsibleResolution = responsibleInput ? responsibleInput.value.trim() : 'SOC Team';
+      
+      if (prodId && prodName) {
+        await fetch(`/products/${prodId}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:prodName,client_id:id,responsible_resolution:responsibleResolution})});
+      } else if (!prodId && prodName) {
+        await fetch('/products', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:prodName,client_id:id,responsible_resolution:responsibleResolution})});
+      }
+    }
+    hideModal(); location.reload();
+  };
+}
+
+function addProductInput() {
+  const productsList = document.getElementById('products-list');
+  const div = document.createElement('div');
+  div.style.display = 'flex';
+  div.style.alignItems = 'center';
+  div.style.gap = '8px';
+  div.style.marginBottom = '8px';
+  div.innerHTML = `
+    <input type='text' name='product_name' placeholder='Product name' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
+    <input type='text' name='responsible_resolution' placeholder='Responsible Resolution' value='SOC Team' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
+    <button type='button' class='btn delete-btn' style='padding:4px 10px;font-size:0.95em;' onclick='this.parentElement.remove()'>Delete</button>
+  `;
+  productsList.appendChild(div);
+}
+
+async function deleteProductFromEdit(productId, btn) {
+  if (confirm('Delete this product?')) {
+    await fetch(`/products/${productId}`, {method:'DELETE'});
+    btn.parentElement.remove();
+  }
+}
+
+function showDeleteClientModal(id, name) {
+  showModal(`<h3 style='margin-bottom:1rem;color:#e74c3c;'>Delete Client</h3><p>Are you sure you want to delete <b>${name}</b>?</p><div style='display:flex;gap:12px;margin-top:18px;'><button class='btn delete-btn' onclick='confirmDeleteClient(${id})'>Yes, delete</button><button class='btn secondary-btn' onclick='hideModal()'>Cancel</button></div>`);
+}
+
+function confirmDeleteClient(id) {
+  fetch(`/clients/${id}`, {method:'DELETE'}).then(()=>{hideModal();location.reload();});
+}
+
+function showAddProductModal(clientId, clientName) {
+  showModal(`<h3 style='margin-bottom:1rem;color:var(--primary-color);'>Add Product to ${clientName}</h3><form id='add-product-form' style='display:flex;flex-direction:column;gap:14px;'>
+    <input name='name' placeholder='Product name' required style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
+    <input name='responsible_resolution' placeholder='Responsible Resolution' value='SOC Team' style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
+    <button class='btn primary-btn' type='submit'>Add</button>
+  </form>`);
+  document.getElementById('add-product-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const name = this.name.value.trim();
+    const responsible_resolution = this.responsible_resolution.value.trim() || 'SOC Team';
+    if (!name) return showToast('Product name required', 'error');
+    await fetch('/products', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,client_id:clientId,responsible_resolution})});
+    hideModal(); location.reload();
+  };
+}
+</script>
+{% endblock %}

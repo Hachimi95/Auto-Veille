@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Auto-Veille{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root {
+      /* Keep your palette but refine structure */
+      --primary-color: #5f249f;
+      --secondary-color: #4e1c7e;
+      --background-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --accent: #222222;
+      --text-color: #333333;
+      --radius: 12px;
+      --transition: 0.3s ease;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 6px 24px rgba(0,0,0,0.08);
+    }
+    body {
+      margin: 0;
+      background-color: var(--background-color);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-color);
+    }
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .logo img {
+      height: 40px;
+      margin-right: 0.5rem;
+    }
+    .nav-links { display:flex; gap: 6px; align-items:center; }
+    .nav-link {
+      color: var(--text-color);
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: var(--transition);
+      font-weight: 600;
+      font-size: 0.95em;
+    }
+    .nav-link:hover { background: #f2f3f5; }
+    .nav-link.active { background: var(--primary-color); color: #fff; }
+    .nav-sep { width:1px; height:22px; background:#e5e7eb; margin:0 6px; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .top-search { display:none; }
+    .content {
+      max-width: 1400px;
+      margin: 18px auto;
+      padding: 0 16px 24px 16px;
+    }
+    .btn {
+      background: var(--primary-color);
+      color: #ffffff;
+      padding: 0.8rem 1.2rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn:hover {
+      background: var(--secondary-color);
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <!-- Navbar -->
+  <header class="navbar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo" style="height:36px;width:auto;object-fit:contain;"/>
+      <strong style="color:var(--text-color);font-size:1.05em;">Auto‑Veille</strong>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Accueil</a>
+      <a href="/upload" class="nav-link {% if request.path.startswith('/upload') %}active{% endif %}">Upload</a>
+      <a href="/auto_bulletin" class="nav-link {% if request.path.startswith('/auto_bulletin') %}active{% endif %}">Auto Bulletin</a>
+      <a href="/auto_patch" class="nav-link {% if request.path.startswith('/auto_patch') %}active{% endif %}">Auto Patch</a>
+      <a href="/tracker" class="nav-link {% if request.path.startswith('/tracker') %}active{% endif %}">Tracker</a>
+      <a href="/dashboard" class="nav-link {% if request.path.startswith('/dashboard') %}active{% endif %}">Dashboard</a>
+      <a href="/clients" class="nav-link {% if request.path.startswith('/clients') %}active{% endif %}">Clients</a>
+    </nav>
+    <div class="top-actions"></div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Global Modal -->
+  <div id="global-modal" style="display:none;position:fixed;z-index:2000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;">
+    <div id="global-modal-content" style="background:var(--card-bg);color:var(--text-color);margin:5% auto;padding:32px 28px;border-radius:14px;max-width:98vw;min-width:320px;box-shadow:0 20px 40px rgba(0,0,0,0.18);position:relative;">
+      <span id="global-modal-close" style="position:absolute;top:12px;right:18px;font-size:2em;color:#aaa;cursor:pointer;font-weight:bold;" onclick="hideModal()">&times;</span>
+      <div id="global-modal-body"></div>
+    </div>
+  </div>
+  <!-- Toast Notification -->
+  <div id="global-toast" style="display:none;position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:16px 32px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.18);font-size:1.1em;z-index:3000;min-width:180px;text-align:center;"></div>
+
+  <script>
+    // Simple theme toggle (light only now, scaffolding for future dark)
+    function toggleTheme(){
+      const b = document.body;
+      const dark = b.getAttribute('data-theme') === 'dark';
+      if(dark){
+        b.removeAttribute('data-theme');
+      } else {
+        b.setAttribute('data-theme','dark');
+      }
+    }
+    function showModal(html) {
+      document.getElementById('global-modal-body').innerHTML = html;
+      document.getElementById('global-modal').style.display = 'flex';
+    }
+    function hideModal() {
+      document.getElementById('global-modal').style.display = 'none';
+      document.getElementById('global-modal-body').innerHTML = '';
+    }
+    function showToast(msg, type) {
+      const toast = document.getElementById('global-toast');
+      toast.textContent = msg;
+      toast.style.background = type === 'error' ? '#e74c3c' : (type === 'success' ? '#27ae60' : '#222');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2200);
+    }
+    // Hide modal on click outside content
+    document.getElementById('global-modal').addEventListener('click', function(e) {
+      if (e.target === this) hideModal();
+    });
+    // Hide modal on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') hideModal();
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

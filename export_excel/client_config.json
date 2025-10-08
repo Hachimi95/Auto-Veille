@@ -1,0 +1,72 @@
+{
+    "CDGDev": {
+        "file_path": "client_excel_files/CDGDev-Rapport.xlsx",
+        "sheet": "2025",
+        "Client": "CDGDev",
+        "column_mapping": {
+            "titre": "E",
+            "id": "B",
+            "niveau risque": "H",
+            "Remarque": "R",
+            "Concerné": "J",
+            "status": "C",
+            "Client": "A",
+            "Date": "F",
+            "Date de traitement": "O",
+            "Date de notification": "M",
+            "Responsable": "L",
+            "pris en charge": "J",
+            "risques": "I",
+            "Description": "G",
+            "Références": "S",
+            "CVEs ID": "D",
+            "Mitigations": "K",
+            "Delai": "N"
+        },
+        "formula_columns": {
+            "Date Difference": {
+                "column": "P",
+                "formula": "=DATEDIF(F{row},O{row},\"D\")"
+            },
+            "Deadline Status": {
+                "column": "Q",
+                "formula": "=IF(P{row}<=N{row},\"Traité dans le delai\",\"Hors délai de remediation\")"
+            }
+        }
+    },
+    "Medz": {
+        "file_path": "client_excel_files/MEDZ-Rapport.xlsx",
+        "sheet": "2025",
+        "Client": "MedZ",
+        "column_mapping": {
+            "titre": "E",
+            "id": "B",
+            "niveau risque": "H",
+            "Remarque": "R",
+            "Concerné": "J",
+            "status": "C",
+            "Client": "A",
+            "Date": "F",
+            "Date de traitement": "O",
+            "Date de notification": "M",
+            "Responsable": "L",
+            "risques": "I",
+            "Description": "G",
+            "Références": "S",
+            "CVEs ID": "D",
+            "Mitigations": "K",
+            "Delai": "N"
+        },
+        "formula_columns": {
+            "Date Difference": {
+                "column": "P",
+                "formula": "=DATEDIF(F{row},O{row},\"D\")"
+            },
+            "Deadline Status": {
+                "column": "Q",
+                "formula": "=IF(P{row}<=N{row},\"Traité dans le delai\",\"Hors délai de remediation\")"
+            }
+        }
+    }
+}
+

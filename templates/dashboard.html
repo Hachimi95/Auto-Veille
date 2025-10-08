@@ -1,0 +1,2003 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | Auto-Veille{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.dashboard-container {
+  max-width: 70%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.dashboard-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #8b5cf6 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: var(--radius);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 2.5em;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1.1em;
+}
+
+.filters-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.filters-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-color) 0%, #8b5cf6 100%);
+}
+
+.filters-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.filters-header h4 {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.filters-header .filter-icon {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, #8b5cf6 100%);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75em;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 1.5rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.filter-group label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filter-group label i {
+  color: var(--primary-color);
+  font-size: 0.85em;
+}
+
+.filter-select, .filter-input {
+  padding: 0.65rem 0.8rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  color: var(--text-color);
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+
+.filter-select:focus, .filter-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(95, 36, 159, 0.1), 0 3px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-0.5px);
+}
+
+.filter-select:hover, .filter-input:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.btn-filter {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85em;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 12px rgba(95, 36, 159, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.btn-filter:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(95, 36, 159, 0.3);
+}
+
+.btn-filter:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(95, 36, 159, 0.3);
+}
+
+.view-toggle {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 1.5rem;
+}
+
+.view-toggle button {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9em;
+  transition: var(--transition);
+}
+
+.view-toggle button.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.kpi-card h3 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-color);
+  font-size: 1.3em;
+  font-weight: 700;
+}
+
+.chart-container {
+  position: relative;
+  height: 220px;
+  margin-bottom: 1rem;
+}
+
+.chart-large {
+  height: 280px;
+}
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.85em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+}
+
+.error {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.client-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.client-title {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.refresh-btn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: var(--transition);
+}
+
+.refresh-btn:hover {
+  background: #4b5563;
+}
+
+.evolution-table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.evolution-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.evolution-table th,
+.evolution-table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.evolution-table th {
+  background: #f8f9fa;
+  font-weight: 700;
+  color: var(--primary-color);
+  border-top: none;
+}
+
+.evolution-table th:first-child {
+  text-align: left;
+  font-weight: 600;
+}
+
+.evolution-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+  background: #f8f9fa;
+}
+
+.evolution-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.evolution-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-cell {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+}
+
+.status-open { background: #fbbf24; color: #000; }
+.status-wip { background: #f97316; }
+.status-pending { background: #60a5fa; }
+.status-nok { background: #ef4444; }
+.status-clos { background: #10b981; }
+.status-clos-traite { background: #059669; }
+.status-clos-patch { background: #16a34a; }
+.status-clos-non { background: #22c55e; }
+
+.dashboard-controls {
+  position: relative;
+  display: inline-block;
+}
+
+.menu-btn {
+  background: transparent;
+  color: #8b5cf6;
+  border: none;
+  padding: 0.4rem;
+  cursor: pointer;
+  transition: var(--transition);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+}
+
+.menu-btn:hover {
+  color: #7c3aed;
+  transform: scale(1.1);
+}
+
+.dashboard-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 240px;
+  z-index: 1000;
+  margin-top: 5px;
+}
+
+.menu-header {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-header h4 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.menu-action-btn {
+  background: #f3f4f6;
+  border: none;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75em;
+  color: var(--text-color);
+  transition: var(--transition);
+}
+
+.menu-action-btn:hover {
+  background: #e5e7eb;
+}
+
+.months-list {
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 0.4rem;
+}
+
+.month-item {
+  display: flex;
+  align-items: center;
+  padding: 0.35rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.month-item:hover {
+  background: #f9fafb;
+}
+
+.month-item input[type="checkbox"] {
+  margin-right: 0.4rem;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.month-item label {
+  cursor: pointer;
+  flex: 1;
+  font-size: 0.85em;
+}
+
+.menu-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.apply-btn {
+  width: 100%;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85em;
+  transition: var(--transition);
+}
+
+.apply-btn:hover {
+  background: var(--secondary-color);
+}
+
+.selected-months {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  min-height: 20px;
+}
+
+.selected-months-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.month-tag {
+  display: inline-block;
+  background: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin: 0.1rem;
+}
+
+.comprehensive-table-container {
+  overflow-x: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 1rem;
+}
+
+.comprehensive-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85em;
+}
+
+.comprehensive-table th {
+  background: #4a90e2;
+  color: white;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #357abd;
+}
+
+.comprehensive-table td {
+  padding: 6px 12px;
+  text-align: center;
+  border: 1px solid #d0d7de;
+  font-weight: 500;
+}
+
+.comprehensive-table .section-header {
+  background: #2c3e50;
+  color: white;
+  font-weight: 700;
+  text-align: left;
+  padding-left: 16px;
+}
+
+.comprehensive-table .subsection-header {
+  background: #34495e;
+  color: white;
+  font-weight: 600;
+  text-align: left;
+  padding-left: 20px;
+}
+
+.comprehensive-table .row-label {
+  background: #ecf0f1;
+  color: #2c3e50;
+  text-align: left;
+  padding-left: 24px;
+  font-weight: 500;
+}
+
+.comprehensive-table .percentage-row {
+  background: #e8f4fd;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.comprehensive-table .percentage-cell {
+  background: #d4edda;
+  color: #155724;
+  font-weight: 700;
+}
+
+.comprehensive-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.comprehensive-table .total-row {
+  background: #fff3cd;
+  font-weight: 600;
+  color: #856404;
+}
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    max-width: 95%;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2em;
+  }
+  
+  .filters-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .filters-section {
+    padding: 1rem;
+  }
+  
+  .filters-header h4 {
+    font-size: 0.95em;
+  }
+  
+  .filters-header .filter-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .btn-filter {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.8em;
+  }
+  
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .chart-container {
+    height: 200px;
+  }
+  
+  .dashboard-menu {
+    width: 220px;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1><i class="fas fa-chart-bar"></i> KPI Dashboard</h1>
+    <p>Monitor vulnerability management metrics across all clients</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <div class="filter-icon">
+        <i class="fas fa-sliders-h"></i>
+      </div>
+      <h4>Filtres du Dashboard</h4>
+    </div>
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label for="client-filter">
+          <i class="fas fa-users"></i>
+          Client
+        </label>
+        <select id="client-filter" class="filter-select">
+          <option value="">Tous les Clients</option>
+          {% for client in clients %}
+          <option value="{{ client }}">{{ client }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="month-filter">
+          <i class="fas fa-calendar-alt"></i>
+          Mois
+        </label>
+        <input type="month" id="month-filter" class="filter-input">
+      </div>
+      <div class="filter-group">
+        <button id="apply-filters" class="btn-filter">
+          <i class="fas fa-search"></i>
+          Appliquer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Toggle -->
+  <div class="view-toggle">
+    <button id="global-view" class="active">Global Overview</button>
+    <button id="client-view">Client Specific</button>
+  </div>
+
+  <!-- Global View -->
+  <div id="global-dashboard">
+    <div class="kpi-grid">
+      <!-- Open vs Closed Chart -->
+      <div class="kpi-card">
+        <h3>Open vs Clos</h3>
+        <div class="chart-container">
+          <canvas id="open-closed-chart"></canvas>
+        </div>
+        <div class="stats-summary" id="open-closed-stats"></div>
+      </div>
+
+      <!-- SLA Compliance -->
+      <div class="kpi-card">
+        <h3>SLA Compliance</h3>
+        <div class="chart-container">
+          <canvas id="global-sla-chart"></canvas>
+        </div>
+        <div class="stats-summary" id="global-sla-stats"></div>
+      </div>
+    </div>
+
+    <!-- Monthly Evolution Section -->
+    <div class="kpi-card" style="margin-top: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Évolution Globale de Traitement des Alertes</h3>
+        <div class="dashboard-controls">
+          <button id="dashboard-menu-btn" class="menu-btn">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          <div id="dashboard-menu" class="dashboard-menu" style="display: none;">
+            <div class="menu-header">
+              <h4>Sélectionner les Mois</h4>
+              <div class="menu-actions">
+                <button id="select-all-months" class="menu-action-btn">Tout</button>
+                <button id="clear-months" class="menu-action-btn">Effacer</button>
+              </div>
+            </div>
+            <div class="months-list" id="months-list">
+              <!-- Months will be populated dynamically -->
+            </div>
+            <div class="menu-footer">
+              <button id="apply-months" class="apply-btn">Appliquer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Selected Months Display -->
+      <div id="selected-months-display" class="selected-months"></div>
+      
+      <!-- Evolution Chart -->
+      <div class="chart-container" style="height: 250px; margin-bottom: 2rem;">
+        <canvas id="evolution-chart"></canvas>
+      </div>
+      
+      <!-- Evolution Table -->
+      <div class="evolution-table-container">
+        <table id="evolution-table" class="evolution-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <!-- Month headers will be added dynamically -->
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Table rows will be added dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client Specific View -->
+  <div id="client-dashboard" style="display: none;">
+    <div id="client-content">
+      <div class="loading">
+        <i class="fas fa-spinner fa-spin"></i> Please select a client to view specific KPIs
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let globalCharts = {};
+let clientCharts = {};
+let currentView = 'global';
+let currentFilters = {
+  client: '',
+  month: '',
+  selectedMonths: []
+};
+
+let availableMonths = [];
+let isMenuOpen = false;
+
+// Chart configuration
+const chartConfig = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom',
+      labels: {
+        padding: 15,
+        usePointStyle: true
+      }
+    }
+  }
+};
+
+const statusColors = {
+  'Open': '#fbbf24',
+  'WIP': '#f97316',
+  'Pending': '#60a5fa',
+  'NOK': '#ef4444',
+  'Clos': '#10b981',
+  'Clos (Traité)': '#059669',
+  'Clos (Patch cumulative)': '#16a34a',
+  'Clos (Non concerné)': '#22c55e'
+};
+
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+  initializeFilters();
+  updateSelectedMonthsDisplay(); // Initialize the display
+  loadGlobalData();
+  loadMonthlyEvolution();
+  
+  // Event listeners
+  document.getElementById('global-view').addEventListener('click', () => switchView('global'));
+  document.getElementById('client-view').addEventListener('click', () => switchView('client'));
+  document.getElementById('apply-filters').addEventListener('click', applyFilters);
+  document.getElementById('client-filter').addEventListener('change', function() {
+    if (currentView === 'client' && this.value) {
+      loadClientData(this.value);
+    }
+  });
+  
+  // Dashboard menu event listeners
+  document.getElementById('dashboard-menu-btn').addEventListener('click', toggleDashboardMenu);
+  document.getElementById('select-all-months').addEventListener('click', selectAllMonths);
+  document.getElementById('clear-months').addEventListener('click', clearAllMonths);
+  document.getElementById('apply-months').addEventListener('click', applyMonthSelection);
+  
+  // Close menu when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.dashboard-controls')) {
+      closeDashboardMenu();
+    }
+  });
+  
+  // Note: Comprehensive table event listener will be added dynamically for client view
+});
+
+function initializeFilters() {
+  // Set default to current month
+  const currentDate = new Date();
+  const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM format
+  
+  document.getElementById('month-filter').value = currentMonth;
+  currentFilters.month = currentMonth;
+}
+
+function switchView(view) {
+  currentView = view;
+  
+  // Update toggle buttons
+  document.querySelectorAll('.view-toggle button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(view + '-view').classList.add('active');
+  
+  // Show/hide sections
+  document.getElementById('global-dashboard').style.display = view === 'global' ? 'block' : 'none';
+  document.getElementById('client-dashboard').style.display = view === 'client' ? 'block' : 'none';
+  
+  if (view === 'global') {
+    loadGlobalData();
+  } else {
+    const selectedClient = document.getElementById('client-filter').value;
+    if (selectedClient) {
+      loadClientData(selectedClient);
+    }
+  }
+}
+
+function applyFilters() {
+  currentFilters.client = document.getElementById('client-filter').value;
+  currentFilters.month = document.getElementById('month-filter').value;
+  
+  if (currentView === 'global') {
+    loadGlobalData();
+    loadMonthlyEvolution();
+  } else {
+    const selectedClient = document.getElementById('client-filter').value;
+    if (selectedClient) {
+      loadClientData(selectedClient);
+    }
+  }
+}
+
+async function loadGlobalData() {
+  try {
+    const params = new URLSearchParams();
+    if (currentFilters.month) params.append('month', currentFilters.month);
+    
+    const response = await fetch(`/api/kpi/global_overview?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderGlobalCharts(result.data);
+    } else {
+      showError('Failed to load global data');
+    }
+  } catch (error) {
+    showError('Network error: ' + error.message);
+  }
+}
+
+async function loadClientData(client) {
+  try {
+    const params = new URLSearchParams();
+    params.append('client', client);
+    if (currentFilters.month) params.append('month', currentFilters.month);
+    
+    const response = await fetch(`/api/kpi/summary?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderClientDashboard(client, result.data);
+    } else {
+      showError('Failed to load client data');
+    }
+  } catch (error) {
+    showError('Network error: ' + error.message);
+  }
+}
+
+// Dashboard menu functions
+function toggleDashboardMenu() {
+  const menu = document.getElementById('dashboard-menu');
+  isMenuOpen = !isMenuOpen;
+  
+  if (isMenuOpen) {
+    menu.style.display = 'block';
+    loadAvailableMonths();
+  } else {
+    menu.style.display = 'none';
+  }
+}
+
+function closeDashboardMenu() {
+  document.getElementById('dashboard-menu').style.display = 'none';
+  isMenuOpen = false;
+}
+
+async function loadAvailableMonths() {
+  try {
+    const client = currentFilters.client || null;
+    const params = new URLSearchParams();
+    if (client) params.append('client', client);
+    
+    const response = await fetch(`/api/kpi/available_months?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      availableMonths = result.data;
+      renderMonthsList();
+    }
+  } catch (error) {
+    console.error('Error loading available months:', error);
+  }
+}
+
+function renderMonthsList() {
+  const monthsList = document.getElementById('months-list');
+  monthsList.innerHTML = '';
+  
+  availableMonths.forEach(monthData => {
+    const monthItem = document.createElement('div');
+    monthItem.className = 'month-item';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `month-${monthData.month}`;
+    checkbox.value = monthData.month;
+    checkbox.checked = currentFilters.selectedMonths.includes(monthData.month);
+    
+    const label = document.createElement('label');
+    label.htmlFor = `month-${monthData.month}`;
+    label.textContent = monthData.display_name;
+    
+    monthItem.appendChild(checkbox);
+    monthItem.appendChild(label);
+    monthsList.appendChild(monthItem);
+  });
+}
+
+function selectAllMonths() {
+  const checkboxes = document.querySelectorAll('#months-list input[type="checkbox"]');
+  checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function clearAllMonths() {
+  const checkboxes = document.querySelectorAll('#months-list input[type="checkbox"]');
+  checkboxes.forEach(checkbox => checkbox.checked = false);
+}
+
+function applyMonthSelection() {
+  const checkboxes = document.querySelectorAll('#months-list input[type="checkbox"]:checked');
+  currentFilters.selectedMonths = Array.from(checkboxes).map(cb => cb.value);
+  
+  updateSelectedMonthsDisplay();
+  loadMonthlyEvolution();
+  
+  // Don't reload comprehensive table from global month selection
+  // Comprehensive table should be independent
+  
+  closeDashboardMenu();
+}
+
+function updateSelectedMonthsDisplay() {
+  const display = document.getElementById('selected-months-display');
+  
+  if (currentFilters.selectedMonths.length === 0) {
+    display.innerHTML = '';
+    display.style.display = 'none';
+  } else {
+    const monthTags = currentFilters.selectedMonths.map(month => {
+      const monthData = availableMonths.find(m => m.month === month);
+      return `<span class="month-tag">${monthData ? monthData.display_name : month}</span>`;
+    }).join(' ');
+    display.innerHTML = monthTags;
+    display.style.display = 'block';
+  }
+}
+
+async function loadMonthlyEvolution() {
+  try {
+    const client = currentFilters.client || null;
+    
+    const params = new URLSearchParams();
+    if (client) params.append('client', client);
+    
+    // Add selected months as multiple parameters
+    currentFilters.selectedMonths.forEach(month => {
+      params.append('months', month);
+    });
+    
+    const response = await fetch(`/api/kpi/monthly_evolution?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderMonthlyEvolution(result.data);
+    } else {
+      console.error('Failed to load monthly evolution data');
+    }
+  } catch (error) {
+    console.error('Network error loading evolution:', error.message);
+  }
+}
+
+function renderGlobalCharts(data) {
+  // Open vs Closed Bar Chart with custom sizing
+  const openClosedCtx = document.getElementById('open-closed-chart');
+  if (openClosedCtx) {
+    if (globalCharts['open-closed-chart']) {
+      globalCharts['open-closed-chart'].destroy();
+    }
+    
+    globalCharts['open-closed-chart'] = new Chart(openClosedCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(data.total_counts.status),
+        datasets: [{
+          label: 'Count',
+          data: Object.values(data.total_counts.status),
+          backgroundColor: Object.keys(data.total_counts.status).map(status => {
+            if (status === 'Open') return '#fbbf24';
+            if (status === 'Clos') return '#10b981';
+            return '#6b7280';
+          }),
+          borderColor: Object.keys(data.total_counts.status).map(status => {
+            if (status === 'Open') return '#f59e0b';
+            if (status === 'Clos') return '#059669';
+            return '#4b5563';
+          }),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false // Hide legend for simple charts
+          }
+        },
+        datasets: {
+          bar: {
+            barPercentage: 0.5,      // Make bars thinner
+            categoryPercentage: 0.6   // Reduce space between categories
+          }
+        }
+      }
+    });
+  }
+  
+  // SLA Compliance
+  renderChart('global-sla-chart', 'pie', {
+    labels: Object.keys(data.total_counts.sla),
+    datasets: [{
+      data: Object.values(data.total_counts.sla),
+      backgroundColor: Object.keys(data.total_counts.sla).map(label => {
+        if (label === 'Traité dans le délai') return '#10b981'; // Green
+        if (label === 'Hors délai de remediation') return '#ef4444'; // Red
+        return '#6b7280'; // Default gray
+      })
+    }]
+  });
+  
+  // Update stats
+  updateStats('open-closed-stats', data.total_counts.status);
+  updateStats('global-sla-stats', data.total_counts.sla);
+}
+
+function renderClientDashboard(client, data) {
+  const content = `
+    <div class="client-header">
+      <div class="client-title">${client} - KPI Overview</div>
+      <button class="refresh-btn" onclick="loadClientData('${client}')">
+        <i class="fas fa-sync-alt"></i> Refresh
+      </button>
+    </div>
+    
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <h3>Open vs Clos</h3>
+        <div class="chart-container">
+          <canvas id="client-open-closed-chart"></canvas>
+        </div>
+        <div class="stats-summary" id="client-open-closed-stats"></div>
+      </div>
+      
+      <div class="kpi-card">
+        <h3>SLA Compliance</h3>
+        <div class="chart-container">
+          <canvas id="client-sla-chart"></canvas>
+        </div>
+        <div class="stats-summary" id="client-sla-stats"></div>
+      </div>
+    </div>
+
+    <!-- Client Monthly Evolution Section -->
+    <div class="kpi-card" style="margin-top: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Évolution Globale de Traitement des Alertes - ${client} <span style="font-size: 0.8em; color: #6b7280; font-weight: normal;">(Filtrable par mois)</span></h3>
+        <div class="dashboard-controls">
+          <button id="client-dashboard-menu-btn" class="menu-btn">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          <div id="client-dashboard-menu" class="dashboard-menu" style="display: none;">
+            <div class="menu-header">
+              <h4>Sélectionner les Mois</h4>
+              <div class="menu-actions">
+                <button id="client-select-all-months" class="menu-action-btn">Tout</button>
+                <button id="client-clear-months" class="menu-action-btn">Effacer</button>
+              </div>
+            </div>
+            <div class="months-list" id="client-months-list">
+              <!-- Months will be populated dynamically -->
+            </div>
+            <div class="menu-footer">
+              <button id="client-apply-months" class="apply-btn">Appliquer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Selected Months Display -->
+      <div id="client-selected-months-display" class="selected-months"></div>
+      
+      <!-- Evolution Chart -->
+      <div class="chart-container" style="height: 250px; margin-bottom: 2rem;">
+        <canvas id="client-evolution-chart"></canvas>
+      </div>
+      
+      <!-- Evolution Table -->
+      <div class="evolution-table-container">
+        <table id="client-evolution-table" class="evolution-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <!-- Month headers will be added dynamically -->
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Table rows will be added dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Client Comprehensive Table -->
+    <div class="kpi-card" style="margin-top: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Rapport Détaillé des Vulnérabilités - ${client} <span style="font-size: 0.8em; color: #6b7280; font-weight: normal;">(Toutes les données)</span></h3>
+        <button id="refresh-client-comprehensive" class="refresh-btn">
+          <i class="fas fa-sync-alt"></i> Actualiser
+        </button>
+      </div>
+      
+      <!-- Comprehensive Table -->
+      <div class="comprehensive-table-container">
+        <table id="client-comprehensive-table" class="comprehensive-table">
+          <!-- Table will be populated dynamically -->
+        </table>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('client-content').innerHTML = content;
+  
+  // Render client charts
+  setTimeout(() => {
+    // Load client-specific open vs closed data
+    loadClientOpenVsClosedChart(client);
+    
+    // Render SLA compliance chart
+    renderChart('client-sla-chart', 'pie', {
+      labels: Object.keys(data.sla_compliance),
+      datasets: [{
+        data: Object.values(data.sla_compliance),
+        backgroundColor: Object.keys(data.sla_compliance).map(label => {
+          if (label === 'Traité dans le délai') return '#10b981'; // Green
+          if (label === 'Hors délai de remediation') return '#ef4444'; // Red
+          return '#6b7280'; // Default gray
+        })
+      }]
+    });
+    
+    // Update stats
+    updateStats('client-sla-stats', data.sla_compliance);
+    
+    // Load client monthly evolution
+    loadClientMonthlyEvolution(client);
+    
+    // Load client comprehensive table
+    loadClientComprehensiveTable(client);
+    
+    // Add event listeners for client-specific controls
+    setupClientEventListeners(client);
+    
+  }, 100);
+}
+
+function renderMonthlyEvolution(evolutionData) {
+  // Prepare data for bar chart
+  const months = evolutionData.months;
+  const monthLabels = months.map(month => evolutionData.data[month].display_name);
+  const statuses = evolutionData.statuses;
+  
+  // Create datasets for each status
+  const datasets = statuses.map(status => ({
+    label: status,
+    data: months.map(month => evolutionData.data[month].statuses[status] || 0),
+    backgroundColor: statusColors[status] || '#6b7280',
+    borderColor: statusColors[status] || '#6b7280',
+    borderWidth: 1
+  }));
+  
+  // Render evolution chart with custom bar sizing
+  const ctx = document.getElementById('evolution-chart');
+  if (ctx) {
+    // Destroy existing chart
+    if (globalCharts['evolution-chart']) {
+      globalCharts['evolution-chart'].destroy();
+    }
+    
+    globalCharts['evolution-chart'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: monthLabels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true
+            }
+          }
+        },
+        datasets: {
+          bar: {
+            barPercentage: 0.4,      // Make bars much thinner
+            categoryPercentage: 0.6   // Reduce space between months
+          }
+        }
+      }
+    });
+  }
+  
+  // Render evolution table
+  renderEvolutionTable(evolutionData);
+}
+
+function renderEvolutionTable(evolutionData) {
+  const table = document.getElementById('evolution-table');
+  const months = evolutionData.months;
+  
+  // Define ALL possible statuses (even if not in data)
+  const allPossibleStatuses = [
+    'Open', 
+    'WIP', 
+    'Pending', 
+    'NOK',
+    'Clos (Patch cumulative)', 
+    'Clos (Non concerné)', 
+    'Clos (Traité)', 
+    'Clos'
+  ];
+  
+  // Clear existing table
+  table.innerHTML = '';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  
+  // Status column header
+  const statusHeader = document.createElement('th');
+  statusHeader.textContent = 'Status';
+  headerRow.appendChild(statusHeader);
+  
+  // Month column headers
+  months.forEach(month => {
+    const monthHeader = document.createElement('th');
+    monthHeader.textContent = evolutionData.data[month].display_name;
+    headerRow.appendChild(monthHeader);
+  });
+  
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  // Show ALL possible statuses (even with 0 values)
+  allPossibleStatuses.forEach(status => {
+    const row = document.createElement('tr');
+    
+    // Status name cell
+    const statusCell = document.createElement('td');
+    statusCell.textContent = status;
+    row.appendChild(statusCell);
+    
+    // Count cells for each month
+    months.forEach(month => {
+      const countCell = document.createElement('td');
+      const count = evolutionData.data[month].statuses[status] || 0;
+      countCell.textContent = count;
+      
+      // Add styling based on count
+      if (count > 0) {
+        countCell.style.fontWeight = '600';
+        if (status.includes('Open') || status === 'WIP' || status === 'Pending' || status === 'NOK') {
+          countCell.style.color = '#d97706';
+        } else if (status.includes('Clos')) {
+          countCell.style.color = '#059669';
+        }
+      } else {
+        countCell.style.color = '#9ca3af';
+        countCell.style.fontWeight = '400';
+      }
+      
+      row.appendChild(countCell);
+    });
+    
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
+}
+
+async function loadClientComprehensiveTable(client) {
+  try {
+    const params = new URLSearchParams();
+    params.append('client', client);
+    
+    // Don't use evolution month selection - comprehensive table shows ALL client data
+    // This makes it independent from the evolution section month filter
+    
+    const response = await fetch(`/api/kpi/comprehensive_table?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderClientComprehensiveTable(result.data);
+    } else {
+      console.error('Failed to load client comprehensive table data');
+    }
+  } catch (error) {
+    console.error('Network error loading client comprehensive table:', error.message);
+  }
+}
+
+function renderClientComprehensiveTable(tableData) {
+  const table = document.getElementById('client-comprehensive-table');
+  const months = tableData.months;
+  const data = tableData.data;
+  
+  // Clear existing table
+  table.innerHTML = '';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  
+  // First column header (empty)
+  const emptyHeader = document.createElement('th');
+  emptyHeader.textContent = '';
+  emptyHeader.style.background = '#2c3e50';
+  headerRow.appendChild(emptyHeader);
+  
+  // Total header
+  const totalHeader = document.createElement('th');
+  totalHeader.textContent = 'Total';
+  totalHeader.style.background = '#4a90e2';
+  headerRow.appendChild(totalHeader);
+  
+  // Month headers
+  months.forEach(month => {
+    const monthHeader = document.createElement('th');
+    monthHeader.textContent = data[month].month_name;
+    headerRow.appendChild(monthHeader);
+  });
+  
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  // Vulnerabilities Section
+  const vulnSection = createSectionRow('Vulnérabilités', months.length + 2);
+  tbody.appendChild(vulnSection);
+  
+  const riskSubsection = createSubsectionRow('Niveau de risque', months.length + 2);
+  tbody.appendChild(riskSubsection);
+  
+  // Risk level rows
+  const riskLevels = ['Critique', 'Moyen', 'Faible', 'Risque fort'];
+  riskLevels.forEach(risk => {
+    const row = document.createElement('tr');
+    
+    // Risk label
+    const labelCell = document.createElement('td');
+    labelCell.textContent = risk;
+    labelCell.className = 'row-label';
+    row.appendChild(labelCell);
+    
+    // Total column
+    const totalCell = document.createElement('td');
+    let total = 0;
+    months.forEach(month => {
+      total += data[month].vulnerabilities[risk] || 0;
+    });
+    totalCell.textContent = total;
+    totalCell.className = 'total-row';
+    row.appendChild(totalCell);
+    
+    // Month columns
+    months.forEach(month => {
+      const cell = document.createElement('td');
+      cell.textContent = data[month].vulnerabilities[risk] || 0;
+      row.appendChild(cell);
+    });
+    
+    tbody.appendChild(row);
+  });
+  
+  // Status Section
+  const statusSection = createSectionRow('Statut', months.length + 2);
+  tbody.appendChild(statusSection);
+  
+  // Status rows
+  const statusTypes = ['Open', 'WIP', 'Pending', 'Clos (Patch cumulative)', 'Clos (Non concerné)', 'Clos (Traité)', 'NOK', 'Alertes cloturées', 'Alertes en cours'];
+  statusTypes.forEach(status => {
+    const row = document.createElement('tr');
+    
+    // Status label
+    const labelCell = document.createElement('td');
+    labelCell.textContent = status;
+    labelCell.className = 'row-label';
+    row.appendChild(labelCell);
+    
+    // Total column
+    const totalCell = document.createElement('td');
+    let total = 0;
+    months.forEach(month => {
+      total += data[month].statut[status] || 0;
+    });
+    totalCell.textContent = total;
+    totalCell.className = 'total-row';
+    row.appendChild(totalCell);
+    
+    // Month columns
+    months.forEach(month => {
+      const cell = document.createElement('td');
+      cell.textContent = data[month].statut[status] || 0;
+      row.appendChild(cell);
+    });
+    
+    tbody.appendChild(row);
+  });
+  
+  // Treatment percentage row
+  const percentageRow = document.createElement('tr');
+  percentageRow.className = 'percentage-row';
+  
+  const percentageLabel = document.createElement('td');
+  percentageLabel.textContent = 'Cumul de traitement';
+  percentageLabel.className = 'row-label';
+  percentageRow.appendChild(percentageLabel);
+  
+  // Average percentage for total
+  const avgCell = document.createElement('td');
+  let avgPercentage = 0;
+  if (months.length > 0) {
+    const totalPercentage = months.reduce((sum, month) => sum + data[month].treatment_percentage, 0);
+    avgPercentage = Math.round(totalPercentage / months.length);
+  }
+  avgCell.textContent = avgPercentage + '%';
+  avgCell.className = 'percentage-cell';
+  percentageRow.appendChild(avgCell);
+  
+  // Month percentages
+  months.forEach(month => {
+    const cell = document.createElement('td');
+    cell.textContent = data[month].treatment_percentage + '%';
+    cell.className = 'percentage-cell';
+    percentageRow.appendChild(cell);
+  });
+  
+  tbody.appendChild(percentageRow);
+  table.appendChild(tbody);
+}
+
+function createSectionRow(title, colSpan) {
+  const row = document.createElement('tr');
+  const cell = document.createElement('td');
+  cell.textContent = title;
+  cell.colSpan = colSpan;
+  cell.className = 'section-header';
+  row.appendChild(cell);
+  return row;
+}
+
+function createSubsectionRow(title, colSpan) {
+  const row = document.createElement('tr');
+  const cell = document.createElement('td');
+  cell.textContent = title;
+  cell.colSpan = colSpan;
+  cell.className = 'subsection-header';
+  row.appendChild(cell);
+  return row;
+}
+
+// Client-specific functions
+async function loadClientOpenVsClosedChart(client) {
+  try {
+    const params = new URLSearchParams();
+    params.append('client', client);
+    if (currentFilters.month) params.append('month', currentFilters.month);
+    
+    const response = await fetch(`/api/kpi/open_vs_closed?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      // Render Open vs Closed Bar Chart for client with custom sizing
+      const openClosedCtx = document.getElementById('client-open-closed-chart');
+      if (openClosedCtx) {
+        if (globalCharts['client-open-closed-chart']) {
+          globalCharts['client-open-closed-chart'].destroy();
+        }
+        
+        globalCharts['client-open-closed-chart'] = new Chart(openClosedCtx, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(result.data),
+            datasets: [{
+              label: 'Count',
+              data: Object.values(result.data),
+              backgroundColor: Object.keys(result.data).map(status => {
+                if (status === 'Open') return '#fbbf24';
+                if (status === 'Clos') return '#10b981';
+                return '#6b7280';
+              }),
+              borderColor: Object.keys(result.data).map(status => {
+                if (status === 'Open') return '#f59e0b';
+                if (status === 'Clos') return '#059669';
+                return '#4b5563';
+              }),
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  stepSize: 1
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false // Hide legend for simple charts
+              }
+            },
+            datasets: {
+              bar: {
+                barPercentage: 0.5,      // Make bars thinner
+                categoryPercentage: 0.6   // Reduce space between categories
+              }
+            }
+          }
+        });
+      }
+      
+      // Update stats
+      updateStats('client-open-closed-stats', result.data);
+    }
+  } catch (error) {
+    console.error('Error loading client open vs closed chart:', error);
+  }
+}
+
+async function loadClientMonthlyEvolution(client) {
+  try {
+    const params = new URLSearchParams();
+    params.append('client', client);
+    
+    // Add selected months as multiple parameters
+    currentFilters.selectedMonths.forEach(month => {
+      params.append('months', month);
+    });
+    
+    const response = await fetch(`/api/kpi/monthly_evolution?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderClientMonthlyEvolution(result.data);
+    } else {
+      console.error('Failed to load client monthly evolution data');
+    }
+  } catch (error) {
+    console.error('Network error loading client evolution:', error.message);
+  }
+}
+
+function renderClientMonthlyEvolution(evolutionData) {
+  // Prepare data for bar chart
+  const months = evolutionData.months;
+  const monthLabels = months.map(month => evolutionData.data[month].display_name);
+  const statuses = evolutionData.statuses;
+  
+  // Create datasets for each status
+  const datasets = statuses.map(status => ({
+    label: status,
+    data: months.map(month => evolutionData.data[month].statuses[status] || 0),
+    backgroundColor: statusColors[status] || '#6b7280',
+    borderColor: statusColors[status] || '#6b7280',
+    borderWidth: 1
+  }));
+  
+  // Render client evolution chart with custom bar sizing
+  const ctx = document.getElementById('client-evolution-chart');
+  if (ctx) {
+    // Destroy existing chart
+    if (globalCharts['client-evolution-chart']) {
+      globalCharts['client-evolution-chart'].destroy();
+    }
+    
+    globalCharts['client-evolution-chart'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: monthLabels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true
+            }
+          }
+        },
+        datasets: {
+          bar: {
+            barPercentage: 0.4,      // Make bars much thinner
+            categoryPercentage: 0.6   // Reduce space between months
+          }
+        }
+      }
+    });
+  }
+  
+  // Render evolution table
+  renderClientEvolutionTable(evolutionData);
+}
+
+function renderClientEvolutionTable(evolutionData) {
+  const table = document.getElementById('client-evolution-table');
+  const months = evolutionData.months;
+  
+  // Define ALL possible statuses (even if not in data)
+  const allPossibleStatuses = [
+    'Open', 
+    'WIP', 
+    'Pending', 
+    'NOK',
+    'Clos (Patch cumulative)', 
+    'Clos (Non concerné)', 
+    'Clos (Traité)', 
+    'Clos'
+  ];
+  
+  // Clear existing table
+  table.innerHTML = '';
+  
+  // Create header
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  
+  // Status column header
+  const statusHeader = document.createElement('th');
+  statusHeader.textContent = 'Status';
+  headerRow.appendChild(statusHeader);
+  
+  // Month column headers
+  months.forEach(month => {
+    const monthHeader = document.createElement('th');
+    monthHeader.textContent = evolutionData.data[month].display_name;
+    headerRow.appendChild(monthHeader);
+  });
+  
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create body
+  const tbody = document.createElement('tbody');
+  
+  // Show ALL possible statuses (even with 0 values)
+  allPossibleStatuses.forEach(status => {
+    const row = document.createElement('tr');
+    
+    // Status name cell
+    const statusCell = document.createElement('td');
+    statusCell.textContent = status;
+    row.appendChild(statusCell);
+    
+    // Count cells for each month
+    months.forEach(month => {
+      const countCell = document.createElement('td');
+      const count = evolutionData.data[month].statuses[status] || 0;
+      countCell.textContent = count;
+      
+      // Add styling based on count
+      if (count > 0) {
+        countCell.style.fontWeight = '600';
+        if (status.includes('Open') || status === 'WIP' || status === 'Pending' || status === 'NOK') {
+          countCell.style.color = '#d97706';
+        } else if (status.includes('Clos')) {
+          countCell.style.color = '#059669';
+        }
+      } else {
+        countCell.style.color = '#9ca3af';
+        countCell.style.fontWeight = '400';
+      }
+      
+      row.appendChild(countCell);
+    });
+    
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
+}
+
+function setupClientEventListeners(client) {
+  // Add event listener for refresh comprehensive table button
+  document.getElementById('refresh-client-comprehensive').addEventListener('click', function() {
+    loadClientComprehensiveTable(client);
+  });
+  
+  // Client dashboard menu event listeners
+  document.getElementById('client-dashboard-menu-btn').addEventListener('click', toggleClientDashboardMenu);
+  document.getElementById('client-select-all-months').addEventListener('click', selectAllClientMonths);
+  document.getElementById('client-clear-months').addEventListener('click', clearAllClientMonths);
+  document.getElementById('client-apply-months').addEventListener('click', function() {
+    applyClientMonthSelection(client);
+  });
+  
+  // Close menu when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('#client-dashboard-menu') && !event.target.closest('#client-dashboard-menu-btn')) {
+      closeClientDashboardMenu();
+    }
+  });
+  
+  // Load available months for client
+  loadClientAvailableMonths(client);
+}
+
+// Client menu functions
+function toggleClientDashboardMenu() {
+  const menu = document.getElementById('client-dashboard-menu');
+  const isOpen = menu.style.display === 'block';
+  
+  if (isOpen) {
+    menu.style.display = 'none';
+  } else {
+    menu.style.display = 'block';
+  }
+}
+
+function closeClientDashboardMenu() {
+  document.getElementById('client-dashboard-menu').style.display = 'none';
+}
+
+async function loadClientAvailableMonths(client) {
+  try {
+    const params = new URLSearchParams();
+    params.append('client', client);
+    
+    const response = await fetch(`/api/kpi/available_months?${params}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      renderClientMonthsList(result.data);
+    }
+  } catch (error) {
+    console.error('Error loading available months for client:', error);
+  }
+}
+
+function renderClientMonthsList(monthsData) {
+  const monthsList = document.getElementById('client-months-list');
+  monthsList.innerHTML = '';
+  
+  monthsData.forEach(monthData => {
+    const monthItem = document.createElement('div');
+    monthItem.className = 'month-item';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `client-month-${monthData.month}`;
+    checkbox.value = monthData.month;
+    checkbox.checked = currentFilters.selectedMonths.includes(monthData.month);
+    
+    const label = document.createElement('label');
+    label.htmlFor = `client-month-${monthData.month}`;
+    label.textContent = monthData.display_name;
+    
+    monthItem.appendChild(checkbox);
+    monthItem.appendChild(label);
+    monthsList.appendChild(monthItem);
+  });
+}
+
+function selectAllClientMonths() {
+  const checkboxes = document.querySelectorAll('#client-months-list input[type="checkbox"]');
+  checkboxes.forEach(checkbox => checkbox.checked = true);
+}
+
+function clearAllClientMonths() {
+  const checkboxes = document.querySelectorAll('#client-months-list input[type="checkbox"]');
+  checkboxes.forEach(checkbox => checkbox.checked = false);
+}
+
+function applyClientMonthSelection(client) {
+  const checkboxes = document.querySelectorAll('#client-months-list input[type="checkbox"]:checked');
+  currentFilters.selectedMonths = Array.from(checkboxes).map(cb => cb.value);
+  
+  updateClientSelectedMonthsDisplay();
+  loadClientMonthlyEvolution(client);
+  // Don't reload comprehensive table - it should be independent
+  closeClientDashboardMenu();
+}
+
+function updateClientSelectedMonthsDisplay() {
+  const display = document.getElementById('client-selected-months-display');
+  
+  if (currentFilters.selectedMonths.length === 0) {
+    display.innerHTML = '';
+    display.style.display = 'none';
+  } else {
+    const monthTags = currentFilters.selectedMonths.map(month => {
+      const monthData = availableMonths.find(m => m.month === month);
+      return `<span class="month-tag">${monthData ? monthData.display_name : month}</span>`;
+    }).join(' ');
+    display.innerHTML = monthTags;
+    display.style.display = 'block';
+  }
+}
+
+function renderChart(canvasId, type, data) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  // Destroy existing chart
+  if (globalCharts[canvasId]) {
+    globalCharts[canvasId].destroy();
+  }
+  
+  const config = {
+    type: type,
+    data: data,
+    options: { ...chartConfig }
+  };
+  
+  // Special config for line charts
+  if (type === 'line') {
+    config.options.scales = {
+      y: {
+        beginAtZero: true
+      }
+    };
+  }
+  
+  // Special config for bar charts
+  if (type === 'bar') {
+    config.options.scales = {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    };
+    config.options.plugins.legend = {
+      display: true // Show legend for bar charts
+    };
+    
+    // Make bars thinner
+    config.options.datasets = {
+      bar: {
+        barPercentage: 0.6,      // Reduce bar width within category
+        categoryPercentage: 0.7   // Reduce space between categories
+      }
+    };
+  }
+  
+  globalCharts[canvasId] = new Chart(ctx, config);
+}
+
+function updateStats(containerId, data) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const total = Object.values(data).reduce((sum, val) => sum + val, 0);
+  
+  container.innerHTML = Object.entries(data).map(([key, value]) => `
+    <div class="stat-item">
+      <div class="stat-value">${value}</div>
+      <div class="stat-label">${key}</div>
+    </div>
+  `).join('');
+}
+
+function showError(message) {
+  const errorDiv = `<div class="error"><i class="fas fa-exclamation-circle"></i> ${message}</div>`;
+  if (currentView === 'global') {
+    document.getElementById('global-dashboard').innerHTML = errorDiv;
+  } else {
+    document.getElementById('client-content').innerHTML = errorDiv;
+  }
+}
+</script>
+{% endblock %}

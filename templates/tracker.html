@@ -1,0 +1,1645 @@
+{% extends 'base.html' %}
+{% block title %}Tracker | Auto-Veille{% endblock %}
+
+{% block content %}
+<div style="min-height:100vh;background:#f5f7fb;">
+  <!-- Minimal Top Bar -->
+  <div style="background:#ffffff;border-bottom:1px solid #e5e7eb;">
+    <div style="max-width:1400px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:8px;height:24px;background:var(--primary-color,#5f249f);border-radius:4px;"></div>
+  <h1 style="margin:0;font-size:1.5rem;font-weight:600;color:#0f172a;font-family:'Segoe UI Variable','Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;letter-spacing:0.2px;">Vulnerability Tracker</h1>
+      </div>
+      <button type="button" onclick="showExportModal()" style="display:inline-flex;align-items:center;gap:8px;background:#307750;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:600;font-size:0.9rem;cursor:pointer;box-shadow:0 2px 6px rgba(48,119,80,0.3);transition:all .2s;"
+        onmouseover="this.style.background='#469b61';this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 10px rgba(48,119,80,0.4)'"
+        onmouseout="this.style.background='#307750';this.style.transform='translateY(0)';this.style.boxShadow='0 2px 6px rgba(48,119,80,0.3)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7,10 12,15 17,10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Content Container -->
+  <div style="max-width:1400px;margin:0 auto;padding:20px 24px;">
+    <!-- Stats & Controls Bar -->
+    <div style="background:#fafbff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+      <div id="trackerStats" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;color:#374151;">
+            <span style="font-weight:700;color:#111827;">Total</span>
+            <span id="vulnVisibleCount" style="font-weight:800;color:#111827;font-size:1.05rem;">0</span>
+            <span style="color:#9ca3af;">/</span>
+            <span id="vulnTotalCount" style="color:#6b7280;">0</span>
+          </div>
+          <span style="color:#d1d5db;">•</span>
+          <div style="display:flex;align-items:center;gap:8px;color:#374151;">
+            <span style="font-weight:700;color:#111827;">Clients</span>
+            <span id="clientSelectedCount" style="font-weight:700;color:#111827;">All</span>
+            <span id="clientChips" style="color:#6b7280;"></span>
+          </div>
+          <button type="button" onclick="resetAllFilters()" title="Reset filters" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;color:#6b7280;cursor:pointer;transition:background .2s,border-color .2s;"
+            onmouseover="this.style.background='#f3f4f6';this.style.borderColor='#d1d5db'" 
+            onmouseout="this.style.background='#fff';this.style.borderColor='#e5e7eb'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10"></path>
+              <path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14"></path>
+            </svg>
+          </button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <small style="color:#6b7280;">Filters apply to export</small>
+        </div>
+      </div>
+    </div>
+  <!-- Table -->
+  <style>
+    /* Enhanced table visuals while keeping existing color palette */
+    .table-enhanced thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7f7fa;
+    }
+    /* Card-like rows */
+    .table-enhanced tbody tr td {
+      background: #ffffff;
+      border-top: 1px solid #ececec;
+      border-bottom: 1px solid #ececec;
+    }
+    .table-enhanced tbody tr td:first-child {
+      border-left: 1px solid #ececec;
+      border-top-left-radius: 10px;
+      border-bottom-left-radius: 10px;
+    }
+    .table-enhanced tbody tr td:last-child {
+      border-right: 1px solid #ececec;
+      border-top-right-radius: 10px;
+      border-bottom-right-radius: 10px;
+    }
+    .table-enhanced tbody tr {
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .table-enhanced tbody tr:hover td:first-child,
+    .table-enhanced tbody tr:hover td:last-child {
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    }
+    .table-enhanced td, .table-enhanced th {
+      vertical-align: top;
+      line-height: 1.35;
+    }
+    .table-density-compact .table-enhanced td {
+      padding-top: 6px !important;
+      padding-bottom: 6px !important;
+    }
+    .toolbar-actions {
+      display:flex;gap:8px;align-items:center;justify-content:flex-end;margin:6px 3vw 8px 3vw;
+    }
+    .btn-secondary { background:#3b3b4b; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .btn-secondary:hover { opacity:.9; }
+  </style>
+
+    <!-- Data Table -->
+    <div style="background:white;border-radius:12px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05);overflow:hidden;">
+    <table class="modern-table" style="width:100%;min-width:1200px;border-collapse:separate;border-spacing:0;font-size:0.9em;">
+      <thead>
+        <tr style="background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);color:#495057;border-bottom:2px solid #dee2e6;">
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:left;min-width:100px;position:relative;border-right:1px solid #e9ecef;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              Client
+              <button type="button" class="btn" style="background:none;border:none;padding:0;cursor:pointer;" onclick="toggleClientFilterDropdown(event)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div id="clientFilterDropdown" style="display:none;position:absolute;left:0;top:110%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.13);border-radius:10px;padding:8px 0;z-index:2000;min-width:200px;">
+              <div style="padding:0 14px 6px 14px;font-weight:600;color:#444;font-size:0.95em;">Filter by client</div>
+              <div style="max-height:180px;overflow-y:auto;">
+                {% for client in clients %}
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="client-filter-checkbox" value="{{ client }}">
+                  <span style="background:#f3f3f3;color:#333;padding:1px 8px;border-radius:8px;font-size:0.95em;">{{ client }}</span>
+                </label>
+                {% endfor %}
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end;padding:8px 14px 0 14px;">
+                <button type="button" class="btn" style="background:#eee;color:#444;padding:4px 14px;border-radius:6px;font-weight:500;font-size:0.9em;" onclick="clearClientFilter()">Clear</button>
+                <button type="button" class="btn primary-btn" style="padding:4px 14px;border-radius:6px;font-weight:500;font-size:0.9em;" onclick="applyClientFilter()">Apply</button>
+              </div>
+            </div>
+          </th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:left;min-width:110px;position:relative;border-right:1px solid #e9ecef;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              ID Bulletin
+              <button type="button" class="btn" style="background:none;border:none;padding:0;cursor:pointer;" onclick="toggleIdBulletinSearchDropdown(event)">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div id="idBulletinSearchDropdown" style="display:none;position:absolute;left:0;top:110%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.13);border-radius:8px;padding:6px 0;z-index:2000;min-width:160px;max-width:220px;">
+              <div style="padding:0 10px 4px 10px;font-weight:600;color:#444;font-size:0.92em;">Search by ID</div>
+              <div style="padding:2px 10px;">
+                <input type="text" id="idBulletinSearchInput" placeholder="Type ID..." style="width:100%;padding:2px 6px;border-radius:5px;border:1px solid #d0d0d0;font-size:0.93em;height:26px;box-sizing:border-box;">
+              </div>
+              <div style="display:flex;gap:6px;justify-content:flex-end;padding:6px 10px 0 10px;">
+                <button type="button" class="btn" style="background:#f5f5f5;color:#444;padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="clearIdBulletinSearch()">Clear</button>
+                <button type="button" class="btn primary-btn" style="padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="applyIdBulletinSearch()">Apply</button>
+              </div>
+            </div>
+          </th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:left;min-width:140px;position:relative;border-right:1px solid #e9ecef;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              Product
+              <button type="button" class="btn" style="background:none;border:none;padding:0;cursor:pointer;" onclick="toggleProductSearchDropdown(event)">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div id="productSearchDropdown" style="display:none;position:absolute;left:0;top:110%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.13);border-radius:8px;padding:6px 0;z-index:2000;min-width:160px;max-width:220px;">
+              <div style="padding:0 10px 4px 10px;font-weight:600;color:#444;font-size:0.92em;">Search by Product</div>
+              <div style="padding:2px 10px;">
+                <input type="text" id="productSearchInput" placeholder="Type product..." style="width:100%;padding:2px 6px;border-radius:5px;border:1px solid #d0d0d0;font-size:0.93em;height:26px;box-sizing:border-box;">
+              </div>
+              <div style="display:flex;gap:6px;justify-content:flex-end;padding:6px 10px 0 10px;">
+                <button type="button" class="btn" style="background:#f5f5f5;color:#444;padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="clearProductSearch()">Clear</button>
+                <button type="button" class="btn primary-btn" style="padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="applyProductSearch()">Apply</button>
+              </div>
+            </div>
+          </th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:left;min-width:110px;position:relative;border-right:1px solid #e9ecef;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              Date Sortie
+              <button type="button" class="btn" style="background:none;border:none;padding:0;cursor:pointer;" onclick="toggleDateSortieDropdown(event)">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div id="dateSortieDropdown" style="display:none;position:absolute;left:0;top:110%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.13);border-radius:8px;padding:6px 0;z-index:2000;min-width:160px;max-width:200px;">
+              <div style="padding:0 10px 4px 10px;font-weight:600;color:#444;font-size:0.92em;">Filter by Month</div>
+              <div style="padding:2px 10px;">
+                <input type="month" id="dateSortieMonth" style="width:100%;padding:2px 6px;border-radius:5px;border:1px solid #d0d0d0;font-size:0.93em;height:26px;box-sizing:border-box;">
+              </div>
+              <div style="display:flex;gap:6px;justify-content:flex-end;padding:6px 10px 0 10px;">
+                <button type="button" class="btn" style="background:#f5f5f5;color:#444;padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="clearDateSortieFilter()">Clear</button>
+                <button type="button" class="btn primary-btn" style="padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="applyDateSortieFilter()">Apply</button>
+              </div>
+            </div>
+          </th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:left;min-width:110px;position:relative;border-right:1px solid #e9ecef;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              Date Treatment
+              <button type="button" class="btn" style="background:none;border:none;padding:0;cursor:pointer;" onclick="toggleProcessingDateDropdown(event)">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div id="processingDateDropdown" style="display:none;position:absolute;left:0;top:110%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.13);border-radius:8px;padding:6px 0;z-index:2000;min-width:160px;max-width:200px;">
+              <div style="padding:0 10px 4px 10px;font-weight:600;color:#444;font-size:0.92em;">Filter by Month</div>
+              <div style="padding:2px 10px;">
+                <input type="month" id="processingDateMonth" style="width:100%;padding:2px 6px;border-radius:5px;border:1px solid #d0d0d0;font-size:0.93em;height:26px;box-sizing:border-box;">
+              </div>
+              <div style="display:flex;gap:6px;justify-content:flex-end;padding:6px 10px 0 10px;">
+                <button type="button" class="btn" style="background:#f5f5f5;color:#444;padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="clearProcessingDateFilter()">Clear</button>
+                <button type="button" class="btn primary-btn" style="padding:3px 10px;border-radius:5px;font-weight:500;font-size:0.88em;" onclick="applyProcessingDateFilter()">Apply</button>
+              </div>
+            </div>
+          </th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:center;min-width:100px;position:relative;border-right:1px solid #e9ecef;">
+            <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+              Status
+              <button type="button" class="btn" style="background:none;border:none;padding:0;cursor:pointer;" onclick="toggleStatusFilterDropdown(event)">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div id="statusFilterDropdown" style="display:none;position:absolute;left:0;top:110%;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.13);border-radius:10px;padding:8px 0;z-index:2000;min-width:200px;">
+              <div style="padding:0 14px 6px 14px;font-weight:600;color:#444;font-size:0.95em;">Filter by status</div>
+              <div style="max-height:180px;overflow-y:auto;">
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="Clos (Patch cumulative)">
+                  <span style="background:#27ae60;color:#fff;padding:1px 8px;border-radius:8px;font-size:0.9em;">Clos (Patch cumulative)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="Clos (Non concerné)">
+                  <span style="background:#27ae60;color:#fff;padding:1px 8px;border-radius:8px;font-size:0.9em;">Clos (Non concerné)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="Clos (Traité)">
+                  <span style="background:#27ae60;color:#fff;padding:1px 8px;border-radius:8px;font-size:0.9em;">Clos (Traité)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="Open">
+                  <span style="background:#ffe066;color:#b8860b;padding:1px 8px;border-radius:8px;font-size:0.9em;">Open</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="WIP">
+                  <span style="background:#ff9800;color:#fff;padding:1px 8px;border-radius:8px;font-size:0.9em;">WIP</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="NOK">
+                  <span style="background:#e74c3c;color:#fff;padding:1px 8px;border-radius:8px;font-size:0.9em;">NOK</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;">
+                  <input type="checkbox" class="status-filter-checkbox" value="Pending">
+                  <span style="background:#5ec6fa;color:#fff;padding:1px 8px;border-radius:8px;font-size:0.9em;">Pending</span>
+                </label>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end;padding:8px 14px 0 14px;">
+                <button type="button" class="btn" style="background:#eee;color:#444;padding:4px 14px;border-radius:6px;font-weight:500;font-size:0.9em;" onclick="clearStatusFilter()">Clear</button>
+                <button type="button" class="btn primary-btn" style="padding:4px 14px;border-radius:6px;font-weight:500;font-size:0.9em;" onclick="applyStatusFilter()">Apply</button>
+              </div>
+            </div>
+          </th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:left;min-width:160px;border-right:1px solid #e9ecef;">Comment</th>
+          <th style="padding:12px 16px;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;text-align:center;min-width:80px;"></th>
+        </tr>
+      </thead>
+      <tbody id="trackerTbody">
+        {% for row in data %}
+        <tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" 
+            onmouseover="this.style.background='#f8f9fa';this.style.transform='translateY(-1px)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';" 
+            onmouseout="this.style.background='#fff';this.style.transform='translateY(0)';this.style.boxShadow='none';" 
+            data-id="{{ row.id }}">
+          <td style="padding:12px 16px;color:#2c3e50;font-weight:500;border-right:1px solid #f8f9fa;">{{ row.client }}</td>
+          <td style="padding:12px 16px;color:#495057;font-family:'SF Mono',Monaco,monospace;font-size:0.85em;border-right:1px solid #f8f9fa;">{{ row.id_bulletin }}</td>
+          <td style="padding:12px 16px;color:#495057;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid #f8f9fa;" title="{{ row.produit_name }}">{{ row.produit_name }}</td>
+          <td style="padding:12px 16px;color:#6c757d;font-family:'SF Mono',Monaco,monospace;font-size:0.85em;border-right:1px solid #f8f9fa;">{{ row.Date_de_sortie }}</td>
+          <td style="padding:12px 16px;color:#6c757d;font-family:'SF Mono',Monaco,monospace;font-size:0.85em;border-right:1px solid #f8f9fa;">{{ row.Date_de_traitement }}</td>
+          <td style="padding:12px 16px;text-align:center;border-right:1px solid #f8f9fa;">
+            <span class="status-badge" style="display:inline-block;padding:4px 8px;border-radius:6px;font-weight:500;font-size:0.8em;border:1px solid;
+              {% if row.status.startswith('Clos') %}
+                background:#d4edda;color:#155724;border-color:#c3e6cb;
+              {% elif row.status == 'NOK' %}
+                background:#f8d7da;color:#721c24;border-color:#f5c6cb;
+              {% elif row.status == 'Pending' %}
+                background:#cce7ff;color:#004085;border-color:#b3d7ff;
+              {% elif row.status == 'WIP' %}
+                background:#fff3cd;color:#856404;border-color:#ffeaa7;
+              {% elif row.status == 'Open' %}
+                background:#fff3cd;color:#856404;border-color:#ffeaa7;
+              {% else %}
+                background:#f8f9fa;color:#6c757d;border-color:#dee2e6;
+              {% endif %}">
+              {{ row.status }}
+            </span>
+          </td>
+          <td style="padding:12px 16px;color:#6c757d;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid #f8f9fa;" title="{{ row.comment }}">
+            {{ row.comment }}
+          </td>
+          <td style="padding:12px 16px;text-align:center;">
+            <button class="btn details-btn" 
+                    data-row-id="{{ row.id }}"
+                    data-status="{{ row.status }}"
+                    data-comment="{{ row.comment }}"
+                    data-date-traitement="{{ row.Date_de_traitement }}"
+                    data-responsable="{{ row.Responsable_resolution }}"
+                    data-produit="{{ row.produit_name }}"
+                    data-id-bulletin="{{ row.id_bulletin }}"
+                    data-client="{{ row.client }}"
+                    data-full-data='{{ row | tojson | safe }}'
+                    style="background:var(--primary-color);border:none;color:#fff;border-radius:6px;padding:6px 12px;font-size:0.8em;font-weight:500;transition:all 0.2s;box-shadow:0 1px 3px rgba(95,36,159,0.3);"
+                    onmouseover="this.style.background='#4a2490';this.style.transform='translateY(-1px)';this.style.boxShadow='0 2px 6px rgba(95,36,159,0.4)';"
+                    onmouseout="this.style.background='var(--primary-color)';this.style.transform='translateY(0)';this.style.boxShadow='0 1px 3px rgba(95,36,159,0.3)';">
+              Details
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Details Modal -->
+  <div id="detailsModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+    <div style="background:#ffffff;margin:5% auto;padding:20px;border-radius:12px;width:95%;max-width:600px;box-shadow:0 20px 40px rgba(0,0,0,0.2);border:1px solid #e5e7eb;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="color:#111827;margin:0;font-size:1.1rem;font-weight:700;">Vulnerability Details</h3>
+        <button onclick="closeDetailsModal()" style="background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;padding:4px;border-radius:6px;"
+          onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">&times;</button>
+      </div>
+      <div id="detailsContent" style="max-height:60vh;overflow-y:auto;margin-bottom:16px;"></div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button type="button" onclick="closeDetailsModal()" style="background:#ffffff;color:#374151;border:1px solid #e5e7eb;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;"
+          onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#ffffff'">Close</button>
+      </div>
+    </div>
+  </div>
+<!-- Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+  <div style="background:#ffffff;margin:2% auto;padding:20px;border-radius:12px;width:90%;max-width:700px;max-height:85vh;box-shadow:0 20px 40px rgba(0,0,0,0.2);border:1px solid #e5e7eb;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="color:#111827;margin:0;font-size:1.1rem;font-weight:700;">Edit Vulnerability</h3>
+      <button onclick="closeEditModal()" style="background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;padding:4px;border-radius:6px;"
+        onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">&times;</button>
+    </div>
+    <div style="overflow-y:auto;max-height:70vh;padding-right:4px;overflow-x:hidden;">
+      <form method="POST" class="modal-form" id="edit-row-form" style="display:block;">
+        <input type="hidden" name="row_id" id="edit_row_id">
+        
+        <!-- Simple Table Style Form -->
+        <table style="width:100%;border-collapse:separate;border-spacing:0;font-size:1em;margin-bottom:20px;">
+          <tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+            <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:30%;font-weight:600;font-size:0.9em;text-transform:uppercase;letter-spacing:0.5px;">
+              Status
+            </th>
+            <td style="padding:12px 16px;color:#495057;font-size:1em;line-height:1.4;border-right:1px solid #f8f9fa;">
+              <select name="status" id="edit_status" required style="max-width:200px;padding:8px 10px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:0.95em;transition:border-color 0.2s;">
+            <option value="Open">Open</option>
+            <option value="WIP">WIP</option>
+            <option value="Pending">Pending</option>
+            <option value="Clos">Clos</option>
+            <option value="Clos (Patch cumulative)">Clos (Patch cumulative)</option>
+            <option value="Clos (Non concerné)">Clos (Non concerné)</option>
+            <option value="Clos (Traité)">Clos (Traité)</option>
+            <option value="NOK">NOK</option>
+          </select>
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+            <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:30%;font-weight:600;font-size:0.9em;text-transform:uppercase;letter-spacing:0.5px;">
+              Processing Date
+            </th>
+            <td style="padding:12px 16px;color:#495057;font-size:1em;line-height:1.4;border-right:1px solid #f8f9fa;">
+              <input type="date" name="date_traitement" id="edit_date_traitement" style="max-width:180px;padding:8px 10px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:0.95em;transition:border-color 0.2s;">
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+            <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:30%;font-weight:600;font-size:0.9em;text-transform:uppercase;letter-spacing:0.5px;">
+              Responsable
+            </th>
+            <td style="padding:12px 16px;color:#495057;font-size:1em;line-height:1.4;border-right:1px solid #f8f9fa;">
+              <input type="text" name="responsable" id="edit_responsable" style="max-width:250px;padding:8px 10px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:0.95em;transition:border-color 0.2s;">
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+            <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:30%;font-weight:600;font-size:0.9em;text-transform:uppercase;letter-spacing:0.5px;">
+              Product
+            </th>
+            <td style="padding:12px 16px;color:#495057;font-size:1em;line-height:1.4;border-right:1px solid #f8f9fa;">
+              <input type="text" name="produit" id="edit_produit" style="max-width:300px;padding:8px 10px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:0.95em;transition:border-color 0.2s;">
+            </td>
+          </tr>
+          <tr style="background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+            <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:30%;font-weight:600;font-size:0.9em;text-transform:uppercase;letter-spacing:0.5px;">
+              Comment
+            </th>
+            <td style="padding:12px 16px;color:#495057;font-size:1em;line-height:1.4;border-right:1px solid #f8f9fa;">
+              <textarea name="comment" id="edit_comment" rows="3" style="max-width:350px;width:100%;min-height:60px;padding:8px 10px;border-radius:6px;border:1px solid #e0e0e0;background:#fff;font-size:0.95em;transition:border-color 0.2s;resize:vertical;"></textarea>
+            </td>
+          </tr>
+        </table>
+        
+        <div class="modal-buttons" style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px;">
+          <button type="button" class="btn btn-delete" style="background:#ffffff;color:#374151;border:1px solid #e5e7eb;padding:10px 18px;border-radius:8px;font-weight:600;" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-confirm" style="background:var(--primary-color,#111827);color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+  <div class="modal-content" style="background:#ffffff;margin:2% auto;padding:28px 24px;border-radius:12px;width:90%;max-width:450px;box-shadow:0 20px 40px rgba(0,0,0,0.2);display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid #e5e7eb;">
+    <div style="width:60px;height:60px;background:linear-gradient(135deg,#ff6b6b 0%,#ee5a5a 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 4px 12px rgba(255,107,107,0.3);">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <polyline points="3,6 5,6 21,6"></polyline>
+        <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    </div>
+    <h3 style="font-size:1.2em;font-weight:700;color:#111827;margin:0 0 10px 0;">Delete Vulnerability</h3>
+    <p style="font-size:0.95em;color:#4b5563;line-height:1.6;margin-bottom:24px;">Are you sure you want to delete this vulnerability entry?<br><span style="font-size:0.9em;color:#9ca3af;">This action cannot be undone.</span></p>
+    <div class="modal-buttons" style="display:flex;gap:12px;justify-content:center;width:100%;">
+      <button type="button" class="btn btn-edit" style="background:#ffffff;color:#374151;padding:10px 18px;border-radius:8px;font-weight:600;border:1px solid #e5e7eb;transition:background .2s;" onclick="closeDeleteModal()" onmouseover="this.style.background='#f9fafb';" onmouseout="this.style.background='#ffffff';">Cancel</button>
+      <form method="POST" id="deleteForm" style="display:inline;"><button type="submit" class="btn btn-delete" style="background:#ef4444;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;border:none;box-shadow:0 3px 10px rgba(239,68,68,0.3);transition:transform .2s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 15px rgba(239,68,68,0.4)';" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 3px 10px rgba(239,68,68,0.3)';">Delete</button></form>
+    </div>
+  </div>
+</div>
+<!-- Actions Modal -->
+<div id="actionsModal" class="modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;">
+  <div class="modal-content" style="background:#ffffff;margin:2% auto;padding:24px;border-radius:12px;width:90%;max-width:800px;max-height:90vh;box-shadow:0 20px 40px rgba(0,0,0,0.2);display:flex;flex-direction:column;align-items:stretch;overflow:hidden;border:1px solid #e5e7eb;">
+    <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h3 style="font-size:1.2em;font-weight:700;color:#111827;margin:0;">Vulnerability Details & Actions</h3>
+      <span class="close" style="color:#6b7280;font-size:24px;font-weight:bold;cursor:pointer;transition:color 0.2s;" onclick="closeActionsModal()">&times;</span>
+    </div>
+    <div id="actionsDetailsContent" style="margin-bottom:24px;overflow-y:auto;max-height:60vh;padding-right:8px;"></div>
+    <div class="modal-buttons" style="display:flex;gap:12px;justify-content:flex-end;margin-top:18px;">
+      <button type="button" class="btn btn-edit" style="background:var(--primary-color,#111827);color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;" onclick="openEditModalFromActions()">Edit</button>
+      <button type="button" class="btn btn-delete" style="background:#ef4444;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;" onclick="openDeleteModalFromActions()">Delete</button>
+      <button type="button" class="btn secondary-btn" style="background:#ffffff;color:#374151;border:1px solid #e5e7eb;padding:10px 18px;border-radius:8px;font-weight:600;" onclick="closeActionsModal()">Close</button>
+    </div>
+  </div>
+</div>
+  </div> <!-- Close content container -->
+  </div> <!-- Close page background -->
+{% endblock %}
+
+{% block scripts %}
+<style>
+.dropdown-menu {
+  display: none;
+}
+.dropdown-menu.show {
+  display: block !important;
+}
+/* From Uiverse.io by omar49511 */ 
+.container-btn-file {
+  display: flex;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  background-color: #307750;
+  color: #fff;
+  border-style: none;
+  padding: 0.6em 1.4em;
+  border-radius: 0.5em;
+  overflow: hidden;
+  z-index: 1;
+  box-shadow: 4px 8px 10px -3px rgba(0, 0, 0, 0.356);
+  transition: all 250ms;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+}
+.container-btn-file input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.container-btn-file > svg {
+  margin-right: 1em;
+}
+.container-btn-file::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 0;
+  border-radius: 0.5em;
+  background-color: #469b61;
+  z-index: -1;
+  transition: all 350ms;
+}
+.container-btn-file:hover::before {
+  width: 100%;
+}
+</style>
+<script>
+  // Legacy details modal handler (guarded). If data-details is absent, defer to enhanced handler below.
+  document.querySelectorAll('.details-btn').forEach(btn => {
+    btn.onclick = function (ev) {
+      const dataAttr = this.getAttribute('data-details');
+      if (!dataAttr) {
+        // No legacy payload; let the enhanced handler handle this click
+        return;
+      }
+      let details;
+      try { details = JSON.parse(dataAttr); } catch (e) { return; }
+      const fieldOrder = [
+        'client', 'id_bulletin', 'produit_name', 'cves', 'description',
+        'Date_de_sortie', 'risk', 'Niveau_de_risqué', 'Responsable_resolution',
+        'Date_de_notification', 'Date_de_traitement', 'processing_time',
+        'mitigation', 'age_alerte', 'sla', 'status', 'comment', 'Référence'
+      ];
+      let html = '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.9em;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e8e9ea;">';
+      fieldOrder.forEach(key => {
+        if (details[key] !== undefined) {
+          let label = key
+            .replace(/_/g, ' ')
+            .replace('Référence', 'References')
+            .replace('risk', 'Impact')
+            .replace('mitigation', 'Remediation')
+            .replace('cves', 'CVEs')
+            .replace('sla', 'SLA')
+            .replace('status', 'Status')
+            .replace('comment', 'Comment')
+            .replace('produit name', 'Product')
+            .replace('id bulletin', 'ID Bulletin');
+          html += `
+            <tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+              <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:38%;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;">
+                ${label}
+              </th>
+              <td style="padding:12px 16px;color:#495057;font-size:0.9em;line-height:1.4;border-right:1px solid #f8f9fa;">${details[key]}</td>
+            </tr>`;
+        }
+      });
+      html += '</table>';
+      document.getElementById('detailsContent').innerHTML = html;
+      document.getElementById('detailsModal').style.display = 'flex';
+    };
+  });
+  function closeDetailsModal() {
+    document.getElementById('detailsModal').style.display = 'none';
+  }
+  function showExportModal() {
+    showModal(`
+      <div style="max-width:450px;margin:0 auto;">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="width:40px;height:40px;background:#307750;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px auto;box-shadow:0 2px 8px rgba(48,119,80,0.3);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </div>
+          <h3 style="font-size:1.3em;font-weight:600;color:#2c3e50;margin:0 0 4px 0;">Export to Excel</h3>
+          <p style="color:#6c757d;margin:0;font-size:0.9em;">Select date range</p>
+        </div>
+        
+        <form id='export-form' style='display:flex;flex-direction:column;gap:14px;'>
+          
+          <div>
+            <label style="display:block;font-weight:600;color:#495057;margin-bottom:6px;font-size:0.9em;">Date range (Date de sortie):</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type='date' name='start_date' placeholder="From" style="flex:1;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;background:#fff;color:#495057;font-size:0.9em;transition:all 0.2s;outline:none;">
+              <span style="color:#6c757d;font-size:0.85em;">to</span>
+              <input type='date' name='end_date' placeholder="To" style="flex:1;padding:6px 8px;border:1px solid #e0e0e0;border-radius:6px;background:#fff;color:#495057;font-size:0.9em;transition:all 0.2s;outline:none;">
+            </div>
+            <div style="margin-top:3px;font-size:0.75em;color:#6c757d;">Leave empty for all data</div>
+          </div>
+          
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+            <button type='button' class='btn' style="background:#f8f9fa;color:#495057;padding:8px 14px;border-radius:6px;font-weight:500;border:1px solid #e9ecef;cursor:pointer;transition:all 0.2s;font-size:0.85em;" onclick="hideModal()">Cancel</button>
+            <button type='submit' class='btn' style="background:#307750;color:#fff;padding:8px 14px;border-radius:6px;font-weight:600;border:none;cursor:pointer;box-shadow:0 2px 6px rgba(48,119,80,0.3);transition:all 0.2s;font-size:0.85em;">Export</button>
+          </div>
+        </form>
+      </div>
+    `);
+    document.getElementById('export-form').onsubmit = async function (e) {
+      e.preventDefault();
+      const form = new FormData(this);
+      // Collect unique clients from currently visible rows in the main table body (first column)
+      const body = document.getElementById('trackerTbody');
+      const selected = (body ? Array.from(body.querySelectorAll(':scope > tr')) : [])
+        .filter(row => row.style.display !== 'none')
+        .map(row => (row.querySelector('td:nth-child(1)')?.textContent || '').trim())
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i);
+      if (!selected.length) {
+        return showToast('No visible rows to export. Adjust filters or date range.', 'error');
+      }
+      // Show loading spinner and message
+      showModal(`
+        <div style='display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0;'>
+          <div class='spinner' style='width:40px;height:40px;border:4px solid #eee;border-top:4px solid #1976d2;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:12px;'></div>
+          <div style='color:#444;font-size:1em;'>Exporting Excel file(s)...</div>
+        </div>
+        <style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
+      `);
+      const res = await fetch('/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          selected_clients: selected,
+          start_date: form.get('start_date'), // This is now Date de sortie
+          end_date: form.get('end_date')      // This is now Date de sortie
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        let downloadHtml = `
+          <div style="max-width:450px;margin:0 auto;">
+            <div style="text-align:center;margin-bottom:20px;">
+              <div style="width:50px;height:50px;background:#307750;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px auto;box-shadow:0 2px 8px rgba(48,119,80,0.3);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <polyline points="20,6 9,17 4,12"/>
+              </svg>
+            </div>
+              <h3 style='font-size:1.3em;font-weight:600;color:#2c3e50;margin:0 0 4px 0;'>Export Complete</h3>
+              <p style='color:#6c757d;margin:0 0 16px 0;font-size:0.9em;line-height:1.5;'>${data.message.replace(/\n/g, '<br>')}</p>
+            </div>`;
+        if (data.exported_clients && data.exported_clients.length > 0) {
+          downloadHtml += `<div style='margin-bottom:20px;'><div style="font-weight:600;color:#495057;margin-bottom:10px;font-size:0.9em;">Download files:</div><div style='display:flex;flex-direction:column;gap:8px;'>`;
+          data.exported_clients.forEach(client => {
+            downloadHtml += `<a href='/download_client_file/${client}' target='_blank' style='background:#307750;color:#fff;padding:10px 14px;border-radius:6px;font-weight:500;text-decoration:none;display:block;transition:all 0.2s;box-shadow:0 2px 6px rgba(48,119,80,0.3);font-size:0.9em;text-align:center;' onmouseover="this.style.background='#469b61';this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 8px rgba(48,119,80,0.4)';" onmouseout="this.style.background='#307750';this.style.transform='translateY(0)';this.style.boxShadow='0 2px 6px rgba(48,119,80,0.3)';">📥 ${client}</a>`;
+          });
+          downloadHtml += `</div></div>`;
+        }
+        downloadHtml += `<div style='display:flex;justify-content:center;margin-top:16px;'><button class='btn' style='background:#f8f9fa;color:#495057;padding:8px 14px;border-radius:6px;font-weight:500;border:1px solid #e9ecef;cursor:pointer;transition:all 0.2s;font-size:0.85em;' onclick='hideModal()'>Close</button></div></div>`;
+        showModal(downloadHtml);
+      } else {
+        showToast(data.message || 'Export error', 'error');
+        hideModal();
+      }
+    };
+  }
+  function toggleMenu(btn) {
+    closeAllMenus();
+    const menu = btn.nextElementSibling;
+    if (menu) menu.classList.toggle('show');
+  }
+  function closeAllMenus() {
+    document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.btn-menu')) closeAllMenus();
+  });
+  // Prevent menu from closing when clicking inside, but allow button clicks
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+      menu.addEventListener('click', function(e) {
+        // Allow button clicks to work, but prevent menu from closing
+        if (e.target.classList.contains('dropdown-item')) {
+          // Let the button click work
+          return;
+        }
+        e.stopPropagation();
+      });
+    });
+  });
+  function openEditModal(rowId, status, comment, dateTraitement, responsable, produit) {
+    console.log('=== OPENING EDIT MODAL ===');
+    console.log('Parameters received:');
+    console.log('- rowId:', rowId, '(type:', typeof rowId, ')');
+    console.log('- status:', status, '(type:', typeof status, ')');
+    console.log('- comment:', comment, '(type:', typeof comment, ')');
+    console.log('- dateTraitement:', dateTraitement, '(type:', typeof dateTraitement, ')');
+    console.log('- responsable:', responsable, '(type:', typeof responsable, ')');
+    console.log('- produit:', produit, '(type:', typeof produit, ')');
+    
+    // Validate required data
+    if (!rowId) {
+      console.error('No row ID provided for edit modal');
+      alert('Erreur: Impossible d\'ouvrir le modal d\'édition (ID manquant)');
+      return;
+    }
+    
+    // Get form elements and check they exist
+    const elements = {
+      rowId: document.getElementById('edit_row_id'),
+      status: document.getElementById('edit_status'),
+      comment: document.getElementById('edit_comment'),
+      dateTraitement: document.getElementById('edit_date_traitement'),
+      responsable: document.getElementById('edit_responsable'),
+      produit: document.getElementById('edit_produit')
+    };
+    
+    console.log('=== FORM ELEMENTS CHECK ===');
+    // Check if all elements exist
+    let allElementsExist = true;
+    for (const [key, element] of Object.entries(elements)) {
+      console.log(`${key}:`, element ? 'EXISTS' : 'NOT FOUND');
+      if (!element) {
+        console.error(`Edit modal element not found: ${key}`);
+        allElementsExist = false;
+      }
+    }
+    
+    if (!allElementsExist) {
+      alert('Erreur: Certains éléments du formulaire sont manquants');
+      return;
+    }
+    
+    // Clear and populate form fields safely
+    try {
+      console.log('=== POPULATING FORM FIELDS ===');
+      
+      elements.rowId.value = String(rowId || '');
+      console.log('Set rowId to:', elements.rowId.value);
+      
+      elements.status.value = String(status || 'Open');
+      console.log('Set status to:', elements.status.value);
+      
+      elements.comment.value = String(comment || '');
+      console.log('Set comment to:', elements.comment.value);
+      
+      elements.dateTraitement.value = String(dateTraitement || '');
+      console.log('Set dateTraitement to:', elements.dateTraitement.value);
+      
+      elements.responsable.value = String(responsable || '');
+      console.log('Set responsable to:', elements.responsable.value);
+      
+      elements.produit.value = String(produit || '');
+      console.log('Set produit to:', elements.produit.value);
+      
+      console.log('=== FORM POPULATION COMPLETE ===');
+
+      // CRITICAL FIX: Remove modal from current DOM context and append to body
+      // This prevents interference from hidden table rows in filtered state
+      const modal = document.getElementById('editModal');
+      if (modal) {
+        console.log('=== APPLYING FILTER-RESISTANT MODAL FIX ===');
+        
+        // Temporarily remove modal from its current position
+        const modalParent = modal.parentNode;
+        const modalNextSibling = modal.nextSibling;
+        
+        // Append modal directly to document body to escape any CSS cascade issues
+        document.body.appendChild(modal);
+        
+        // Force modal styles with highest priority
+        modal.style.cssText = `
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 99999 !important;
+          background: rgba(0,0,0,0.7) !important;
+          align-items: center !important;
+          justify-content: center !important;
+        `;
+
+        // Force modal content visibility
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+          modalContent.style.cssText = `
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            flex-direction: column !important;
+            background: var(--card-bg) !important;
+            margin: 2% auto !important;
+            padding: 32px 24px 24px 24px !important;
+            border-radius: 12px !important;
+            width: 90% !important;
+            max-width: 600px !important;
+            max-height: 85vh !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+            align-items: stretch !important;
+            overflow: hidden !important;
+          `;
+          const form = modalContent.querySelector('#edit-row-form');
+          if (form) {
+            form.style.display = 'block';
+            form.style.visibility = 'visible';
+            const table = form.querySelector('table');
+            if (table) {
+              table.style.display = 'table';
+              table.style.visibility = 'visible';
+            }
+          }
+        }
+
+        // Ensure all form elements are visible without breaking table layout
+        Object.entries(elements).forEach(([key, element]) => {
+          if (!element) return;
+          // Make the input/select/textarea itself visible
+          element.style.visibility = 'visible';
+          element.style.opacity = '1';
+          element.style.display = '';
+
+          // If inside a table cell/row, reset their styles to defaults instead of forcing invalid values
+          const td = element.closest('td');
+          if (td) {
+            td.style.visibility = 'visible';
+            td.style.opacity = '1';
+            td.style.display = ''; // let it be table-cell by default
+          }
+          const tr = element.closest('tr');
+          if (tr) {
+            tr.style.visibility = 'visible';
+            tr.style.opacity = '1';
+            tr.style.display = ''; // let it be table-row by default
+          }
+        });
+
+        console.log('Modal moved to body with filter-resistant styling');
+
+        // Store original position for cleanup when modal closes
+        modal._originalParent = modalParent;
+        modal._originalNextSibling = modalNextSibling;
+
+        // Final validation check
+        setTimeout(() => {
+          console.log('=== FILTER-RESISTANT MODAL VALIDATION ===');
+          Object.entries(elements).forEach(([key, element]) => {
+            const rect = element.getBoundingClientRect();
+            const isVisible = rect.width > 0 && rect.height > 0;
+            console.log(`${key}: value="${element.value}", visible=${isVisible}, rect:`, rect);
+          });
+          
+          console.log('Modal final position:', modal.getBoundingClientRect());
+        }, 50);
+      } else {
+        console.error('Edit modal element not found');
+        alert('Erreur: Modal d\'édition non trouvé');
+      }
+    } catch (error) {
+      console.error('Error populating edit modal fields:', error);
+      alert('Erreur lors du remplissage du formulaire d\'édition: ' + error.message);
+    }
+  }
+  function closeEditModal() {
+    const editModal = document.getElementById('editModal');
+    if (editModal) {
+      // Hide modal
+      editModal.style.display = 'none';
+      editModal.style.visibility = 'hidden';
+      editModal.style.opacity = '0';
+      
+      // Restore modal to original position if it was moved
+      if (editModal._originalParent && editModal._originalNextSibling) {
+        editModal._originalParent.insertBefore(editModal, editModal._originalNextSibling);
+      } else if (editModal._originalParent) {
+        editModal._originalParent.appendChild(editModal);
+      }
+      
+      // Clean up tracking properties
+      delete editModal._originalParent;
+      delete editModal._originalNextSibling;
+      
+      // Reset modal styles to original
+      editModal.style.cssText = 'display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;';
+    }
+    console.log('Edit modal closed and restored');
+  }
+  function openDeleteModal(id_bulletin, client) {
+    console.log('openDeleteModal called with:', id_bulletin, client);
+    document.getElementById('deleteForm').action = '/delete_vulnerability/' + id_bulletin + '/' + client;
+    document.getElementById('deleteModal').style.display = 'block';
+    console.log('Delete modal should now be visible');
+  }
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+  }
+
+  // Comprehensive debug function
+  window.debugModalState = function() {
+    console.log('=== MODAL DEBUG STATE ===');
+    console.log('currentActionsRowId:', currentActionsRowId);
+    console.log('currentActionsRowData:', currentActionsRowData);
+    console.log('editModal element:', document.getElementById('editModal'));
+    console.log('actionsModal element:', document.getElementById('actionsModal'));
+    console.log('deleteModal element:', document.getElementById('deleteModal'));
+    console.log('deleteForm element:', document.getElementById('deleteForm'));
+    
+    // Check all form elements
+    const formElements = [
+      'edit_row_id', 'edit_status', 'edit_comment', 
+      'edit_date_traitement', 'edit_responsable', 'edit_produit'
+    ];
+    
+    formElements.forEach(id => {
+      const element = document.getElementById(id);
+      console.log(`${id}:`, element, 'value:', element ? element.value : 'NOT FOUND');
+    });
+    
+    // Check delete form action
+    const deleteForm = document.getElementById('deleteForm');
+    if (deleteForm) {
+      console.log('Delete form action:', deleteForm.action);
+    }
+    
+    console.log('=== END DEBUG ===');
+  };
+  
+  // Test delete functionality
+  window.testDelete = function() {
+    if (currentActionsRowData) {
+      console.log('Testing delete with current data...');
+      openDeleteModalFromActions();
+    } else {
+      console.log('No data available for delete test. Click Details first.');
+    }
+  };
+  
+  // Specific test for edit modal issue
+  window.debugEditIssue = function() {
+    console.log('=== DEBUGGING EDIT MODAL ISSUE ===');
+    
+    // Step 1: Check if we have data
+    console.log('Step 1 - Current data check:');
+    console.log('- currentActionsRowId:', currentActionsRowId);
+    console.log('- currentActionsRowData exists:', !!currentActionsRowData);
+    console.log('- currentActionsRowData:', currentActionsRowData);
+    
+    // Step 2: Check edit modal elements
+    console.log('Step 2 - Edit modal elements check:');
+    const editModal = document.getElementById('editModal');
+    console.log('- editModal exists:', !!editModal);
+    console.log('- editModal display:', editModal ? editModal.style.display : 'N/A');
+    
+    const formElements = {
+      'edit_row_id': document.getElementById('edit_row_id'),
+      'edit_status': document.getElementById('edit_status'),
+      'edit_comment': document.getElementById('edit_comment'),
+      'edit_date_traitement': document.getElementById('edit_date_traitement'),
+      'edit_responsable': document.getElementById('edit_responsable'),
+      'edit_produit': document.getElementById('edit_produit')
+    };
+    
+    Object.entries(formElements).forEach(([id, element]) => {
+      console.log(`- ${id}:`, !!element, element ? `(value: "${element.value}")` : '(NOT FOUND)');
+    });
+    
+    // Step 3: Try to manually open edit modal
+    console.log('Step 3 - Manual edit modal test:');
+    if (currentActionsRowData && currentActionsRowId) {
+      console.log('Attempting to open edit modal...');
+      openEditModalFromActions();
+    } else {
+      console.log('Cannot test - no current data available');
+    }
+    
+    console.log('=== END EDIT DEBUG ===');
+  };
+  
+  // Step-by-step debug process
+  window.fullDebugProcess = function() {
+    console.log('=== FULL DEBUG PROCESS ===');
+    console.log('Please follow these steps:');
+    console.log('1. Apply your filter (CDGDev or Open status)');
+    console.log('2. Click Details on a filtered row');
+    console.log('3. Run: debugEditIssue() in console');
+    console.log('4. Try clicking Edit button in the modal');
+    console.log('5. Run: debugModalState() to see final state');
+    console.log('6. Share all console output with developer');
+    console.log('=== READY FOR DEBUGGING ===');
+  };
+  
+  // When edit modal appears empty, run this
+  window.debugEmptyEditModal = function() {
+    console.log('=== DEBUGGING EMPTY EDIT MODAL ===');
+    
+    const editModal = document.getElementById('editModal');
+    console.log('Edit modal exists:', !!editModal);
+    console.log('Edit modal display style:', editModal ? editModal.style.display : 'N/A');
+    console.log('Edit modal innerHTML length:', editModal ? editModal.innerHTML.length : 0);
+    
+    // Check if modal content is actually there
+    const modalContent = editModal ? editModal.querySelector('.modal-content') : null;
+    console.log('Modal content exists:', !!modalContent);
+    
+    // Check form
+    const form = document.getElementById('edit-row-form');
+    console.log('Edit form exists:', !!form);
+    console.log('Form innerHTML length:', form ? form.innerHTML.length : 0);
+    
+    // Check individual form fields
+    const fields = ['edit_row_id', 'edit_status', 'edit_comment', 'edit_date_traitement', 'edit_responsable', 'edit_produit'];
+    fields.forEach(fieldId => {
+      const field = document.getElementById(fieldId);
+      console.log(`${fieldId}:`, {
+        exists: !!field,
+        value: field ? field.value : 'N/A',
+        type: field ? field.type : 'N/A',
+        visible: field ? field.offsetParent !== null : false
+      });
+    });
+    
+    // Check CSS that might be hiding content
+    if (editModal) {
+      const computedStyle = window.getComputedStyle(editModal);
+      console.log('Edit modal computed styles:');
+      console.log('- display:', computedStyle.display);
+      console.log('- visibility:', computedStyle.visibility);
+      console.log('- opacity:', computedStyle.opacity);
+      console.log('- z-index:', computedStyle.zIndex);
+    }
+    
+    console.log('=== END EMPTY MODAL DEBUG ===');
+  };
+  
+  // Test function to directly test edit modal
+  window.testEditModal = function() {
+    // Find the first visible Details button
+    const buttons = document.querySelectorAll('.details-btn');
+    console.log('Total Details buttons found:', buttons.length);
+    
+    const visibleButtons = Array.from(buttons).filter(btn => {
+      const row = btn.closest('tr');
+      return row && row.style.display !== 'none';
+    });
+    
+    console.log('Visible Details buttons found:', visibleButtons.length);
+    
+    if (visibleButtons.length > 0) {
+      console.log('Clicking first visible button...');
+      visibleButtons[0].click();
+    } else {
+      console.log('No visible buttons to test');
+    }
+  };
+  
+  // Debug specific button
+  window.debugButton = function(buttonIndex = 0) {
+    const buttons = document.querySelectorAll('.details-btn');
+    if (buttons[buttonIndex]) {
+      const btn = buttons[buttonIndex];
+      const row = btn.closest('tr');
+      
+      console.log('=== BUTTON DEBUG ===');
+      console.log('Button index:', buttonIndex);
+      console.log('Row visible:', row && row.style.display !== 'none');
+      console.log('Button attributes:');
+      console.log('- data-row-id:', btn.getAttribute('data-row-id'));
+      console.log('- data-status:', btn.getAttribute('data-status'));
+      console.log('- data-comment:', btn.getAttribute('data-comment'));
+      console.log('- data-full-data length:', btn.getAttribute('data-full-data')?.length || 0);
+      
+      if (row) {
+        console.log('Row cells:');
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, i) => {
+          console.log(`  Cell ${i}:`, cell.textContent.trim().substring(0, 50));
+        });
+      }
+    }
+  };
+  
+  // Simple debugging function to see filtering state
+  window.checkFilterState = function() {
+    console.log('=== FILTER STATE CHECK ===');
+    
+    // Check all rows and their visibility
+    const allRows = document.querySelectorAll('tbody tr');
+    const visibleRows = Array.from(allRows).filter(row => row.style.display !== 'none');
+    const hiddenRows = Array.from(allRows).filter(row => row.style.display === 'none');
+    
+    console.log('Total rows:', allRows.length);
+    console.log('Visible rows:', visibleRows.length);
+    console.log('Hidden rows:', hiddenRows.length);
+    
+    // Check if any filters are active
+    const clientFilters = document.querySelectorAll('.client-filter-checkbox:checked');
+    const statusFilters = document.querySelectorAll('.status-filter-checkbox:checked');
+    
+    console.log('Active client filters:', clientFilters.length);
+    console.log('Active status filters:', statusFilters.length);
+    
+    // Log which filters are checked
+    clientFilters.forEach(filter => {
+      console.log('- Client filter checked:', filter.value);
+    });
+    statusFilters.forEach(filter => {
+      console.log('- Status filter checked:', filter.value);
+    });
+    
+    // Check first visible row button data
+    if (visibleRows.length > 0) {
+      const firstButton = visibleRows[0].querySelector('.details-btn');
+      if (firstButton) {
+        console.log('First visible button data:');
+        console.log('- rowId:', firstButton.getAttribute('data-row-id'));
+        console.log('- status:', firstButton.getAttribute('data-status'));
+        console.log('- comment:', firstButton.getAttribute('data-comment'));
+        console.log('- full data exists:', !!firstButton.getAttribute('data-full-data'));
+        
+        // Test clicking this button
+        console.log('Testing click on first visible button...');
+        try {
+          firstButton.click();
+          console.log('Click successful - check if modal appeared');
+        } catch (e) {
+          console.error('Click failed:', e);
+        }
+      }
+    }
+    
+    console.log('=== END FILTER STATE ===');
+  };
+  
+  // Compare function to check differences
+  window.compareStates = function() {
+    console.log('=== COMPARISON TEST ===');
+    console.log('1. First, clear all filters and run checkFilterState()');
+    console.log('2. Then apply your problematic filter and run checkFilterState() again');
+    console.log('3. Compare the outputs to see what\'s different');
+    console.log('=== TO RUN THIS TEST ===');
+    console.log('Step 1: Clear all filters, then run: checkFilterState()');
+    console.log('Step 2: Apply CDGDev filter, then run: checkFilterState()');
+    console.log('Step 3: Look for differences in the console output');
+  };
+  
+  // Enhanced Details button handler - uses button attributes as primary data source
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('details-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('=== DETAILS BUTTON CLICKED (ENHANCED) ===');
+        
+        const button = e.target;
+        
+        // CRITICAL: Use button attributes as primary data source since they remain accessible even when rows are filtered
+        const buttonData = {
+            id: button.getAttribute('data-row-id'),
+            status: button.getAttribute('data-status'),
+            comment: button.getAttribute('data-comment'),
+            Date_de_traitement: button.getAttribute('data-date-traitement'),
+            Responsable_resolution: button.getAttribute('data-responsable'),
+            produit_name: button.getAttribute('data-produit'),
+            client: button.getAttribute('data-client'),
+            id_bulletin: button.getAttribute('data-id-bulletin')
+        };
+        
+        console.log('Button data extracted:', buttonData);
+
+        // Try to parse data-full-data for enrichment, but don't depend on it
+        let fullData = {};
+        const fullDataRaw = button.getAttribute('data-full-data');
+        if (fullDataRaw) {
+            try {
+                fullData = JSON.parse(fullDataRaw);
+                console.log('Full data parsed successfully');
+            } catch (err) {
+                console.warn('Failed to parse data-full-data, using button attributes only');
+                fullData = {};
+            }
+        }
+        
+        // Merge data with button attributes taking priority
+        const mergedData = Object.assign({}, fullData, buttonData);
+        
+        // Ensure required fields with fallbacks
+        mergedData.id = mergedData.id || buttonData.id;
+        if (!mergedData.id) {
+            console.error('No row ID found in button data');
+            alert('Erreur: ID de ligne manquant');
+            return;
+        }
+        
+        console.log('Final merged data:', mergedData);
+        
+        // Store data globally for modal functions
+        currentActionsRowId = mergedData.id;
+        currentActionsRowData = mergedData;
+
+        // Render and show details modal
+        renderDetailsModal(mergedData);
+        const actionsModal = document.getElementById('actionsModal');
+        if (actionsModal) {
+            actionsModal.style.display = 'block';
+            actionsModal.style.visibility = 'visible';
+            actionsModal.style.opacity = '1';
+            console.log('Actions modal displayed successfully');
+        }
+        
+        console.log('=== DETAILS MODAL READY ===');
+    }
+  });
+  
+  function renderDetailsModal(rowData) {
+    const fieldOrder = [
+      'client', 'id_bulletin', 'produit_name', 'cves', 'description',
+      'Date_de_sortie', 'risk', 'Niveau_de_risqué', 'Responsable_resolution',
+      'Date_de_notification', 'Date_de_traitement', 'processing_time',
+      'mitigation', 'age_alerte', 'sla', 'status', 'comment', 'Référence'
+    ];
+    
+    let html = '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:0.9em;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e8e9ea;">';
+    fieldOrder.forEach(key => {
+      if (rowData[key] !== undefined) {
+        let label = key
+          .replace(/_/g, ' ')
+          .replace('Référence', 'References')
+          .replace('risk', 'Impact')
+          .replace('mitigation', 'Remediation')
+          .replace('cves', 'CVEs')
+          .replace('sla', 'SLA')
+          .replace('status', 'Status')
+          .replace('comment', 'Comment')
+          .replace('produit name', 'Product')
+          .replace('id bulletin', 'ID Bulletin');
+        let value = rowData[key];
+        
+        html += `<tr style="border-bottom:1px solid #f0f1f2;background:#fff;transition:all 0.2s ease;" onmouseover="this.style.background='#f8f9fa';" onmouseout="this.style.background='#fff';">
+            <th style="text-align:left;padding:12px 16px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-right:1px solid #e9ecef;vertical-align:top;color:#495057;width:35%;font-weight:600;font-size:0.85em;text-transform:uppercase;letter-spacing:0.5px;">
+              ${label}
+            </th>
+            <td style="padding:12px 16px;color:#495057;font-size:0.9em;line-height:1.4;border-right:1px solid #f8f9fa;">${value}</td>
+          </tr>`;
+      }
+    });
+    html += '</table>';
+    document.getElementById('actionsDetailsContent').innerHTML = html;
+
+    // Attach data attributes to the Edit button inside actions modal for robust retrieval
+    const editBtn = document.querySelector('#actionsModal .btn.btn-edit');
+    if (editBtn) {
+      try {
+        editBtn.setAttribute('data-row-id', rowData.id || currentActionsRowId || '');
+        editBtn.setAttribute('data-status', rowData.status || rowData.Status || '');
+        editBtn.setAttribute('data-comment', rowData.comment || rowData.Comment || '');
+        editBtn.setAttribute('data-date-traitement', rowData.Date_de_traitement || rowData.date_traitement || '');
+        editBtn.setAttribute('data-responsable', rowData.Responsable_resolution || rowData.responsable || '');
+        editBtn.setAttribute('data-produit', rowData.produit_name || rowData.produit || '');
+      } catch (e) {
+        console.warn('Failed to attach data attributes to Edit button:', e);
+      }
+    }
+  }
+
+  document.getElementById('edit-row-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const form = new FormData(this);
+    const row_id = form.get('row_id');
+    const status = form.get('status');
+    const comment = form.get('comment');
+    const date_traitement = form.get('date_traitement');
+    const responsable = form.get('responsable');
+    const produit = form.get('produit');
+    await fetch('/tracker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ row_id, status, comment, date_traitement, responsable, produit })
+    });
+    closeEditModal();
+    // Reload the page
+    location.reload();
+  };
+  document.getElementById('deleteForm').onsubmit = async function(e) {
+    e.preventDefault();
+    await fetch(this.action, { method: 'POST' });
+    closeDeleteModal();
+    location.reload();
+  };
+
+  let currentActionsRowId = null;
+  let currentActionsRowData = null;
+  
+  function closeActionsModal() {
+    const actionsModal = document.getElementById('actionsModal');
+    if (actionsModal) {
+      actionsModal.style.display = 'none';
+      actionsModal.style.visibility = 'hidden';
+      actionsModal.style.opacity = '0';
+    }
+    console.log('Actions modal closed');
+  }
+  function openEditModalFromActions() {
+    console.log('=== OPENING EDIT FROM ACTIONS ===');
+    
+    // Validate data availability
+    if (!currentActionsRowData || !currentActionsRowId) {
+      console.error('No current actions row data available');
+      alert('Erreur: Données manquantes. Veuillez fermer et rouvrir le modal de détails.');
+      return;
+    }
+    
+    // Close actions modal first, then open edit modal with delay
+    closeActionsModal();
+    setTimeout(() => {
+      // Prefer data attributes on the Edit button inside the actions modal
+      const modalEditBtn = document.querySelector('#actionsModal .btn.btn-edit');
+      const rowId = (modalEditBtn && modalEditBtn.getAttribute('data-row-id')) || currentActionsRowId;
+      const status = (modalEditBtn && modalEditBtn.getAttribute('data-status')) || currentActionsRowData.status || currentActionsRowData.Status || 'Open';
+      const comment = (modalEditBtn && modalEditBtn.getAttribute('data-comment')) || currentActionsRowData.comment || currentActionsRowData.Comment || '';
+      const dateTraitement = (modalEditBtn && modalEditBtn.getAttribute('data-date-traitement')) || currentActionsRowData.Date_de_traitement || currentActionsRowData.date_traitement || '';
+      const responsable = (modalEditBtn && modalEditBtn.getAttribute('data-responsable')) || currentActionsRowData.Responsable_resolution || currentActionsRowData.responsable || '';
+      const produit = (modalEditBtn && modalEditBtn.getAttribute('data-produit')) || currentActionsRowData.produit_name || currentActionsRowData.produit || '';
+
+      console.log('Calling openEditModal with:', { rowId, status, comment, dateTraitement, responsable, produit });
+      openEditModal(rowId, status, comment, dateTraitement, responsable, produit);
+    }, 50);
+  }
+  function openDeleteModalFromActions() {
+    console.log('=== OPENING DELETE MODAL FROM ACTIONS ===');
+    console.log('currentActionsRowData:', currentActionsRowData);
+    
+    if (!currentActionsRowData) {
+      console.error('No current actions row data available for delete');
+      alert('Erreur: Aucune donnée disponible pour la suppression');
+      return;
+    }
+    
+    // Extract id_bulletin and client with fallbacks
+    const idBulletin = currentActionsRowData.id_bulletin || 
+                      currentActionsRowData.idBulletin || 
+                      currentActionsRowData['ID Bulletin'];
+    const client = currentActionsRowData.client || 
+                  currentActionsRowData.Client;
+    
+    console.log('Delete data extracted - idBulletin:', idBulletin, 'client:', client);
+    
+    if (!idBulletin || !client) {
+      console.error('Missing required data for delete - idBulletin:', idBulletin, 'client:', client);
+      alert('Erreur: Données insuffisantes pour la suppression (ID bulletin ou client manquant)');
+      return;
+    }
+    
+    openDeleteModal(idBulletin, client);
+    closeActionsModal();
+  }
+
+  // Status filter dropdown logic
+  function toggleStatusFilterDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('statusFilterDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    // Close on outside click
+    document.addEventListener('click', closeStatusDropdownOnClick);
+  }
+  function closeStatusDropdownOnClick(e) {
+    const dropdown = document.getElementById('statusFilterDropdown');
+    if (!dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeStatusDropdownOnClick);
+    }
+  }
+  function clearStatusFilter() {
+    document.querySelectorAll('.status-filter-checkbox').forEach(cb => cb.checked = false);
+    applyStatusFilter();
+  }
+  function applyCombinedFilters() {
+    const normalize = str => str.trim().toLowerCase();
+    const checkedClients = Array.from(document.querySelectorAll('.client-filter-checkbox:checked')).map(cb => normalize(cb.value));
+    const checkedStatuses = Array.from(document.querySelectorAll('.status-filter-checkbox:checked')).map(cb => cb.value);
+    
+    // Get date filter values
+    const dateSortieMonth = document.getElementById('dateSortieMonth').value;
+    const processingDateMonth = document.getElementById('processingDateMonth').value;
+    
+    document.querySelectorAll('tbody tr').forEach(row => {
+      const clientCell = row.querySelector('td:nth-child(1)');
+      const statusCell = row.querySelector('td:nth-child(6) .status-badge');
+      const dateSortieCell = row.querySelector('td:nth-child(4)');
+      const processingDateCell = row.querySelector('td:nth-child(5)');
+      
+      const clientMatch = !checkedClients.length || (clientCell && checkedClients.includes(normalize(clientCell.textContent)));
+      const statusMatch = !checkedStatuses.length || (statusCell && checkedStatuses.includes(statusCell.textContent.trim()));
+      
+      // Date filter matching
+      let dateSortieMatch = true;
+      if (dateSortieMonth && dateSortieCell) {
+        const cellMonth = dateSortieCell.textContent.trim().substring(0, 7);
+        dateSortieMatch = cellMonth === dateSortieMonth;
+      }
+      
+      let processingDateMatch = true;
+      if (processingDateMonth && processingDateCell) {
+        const cellMonth = processingDateCell.textContent.trim().substring(0, 7);
+        processingDateMatch = cellMonth === processingDateMonth;
+      }
+      
+      row.style.display = (clientMatch && statusMatch && dateSortieMatch && processingDateMatch) ? '' : 'none';
+    });
+    
+    document.getElementById('clientFilterDropdown').style.display = 'none';
+    document.getElementById('statusFilterDropdown').style.display = 'none';
+
+    updateStatusBadgeColors();
+    updateTrackerStats();
+    saveFilterState();
+  }
+  function applyClientFilter() {
+    applyCombinedFilters();
+  }
+  function applyStatusFilter() {
+    applyCombinedFilters();
+  }
+
+  // Stats updater
+  function updateTrackerStats() {
+    try {
+  const body = document.getElementById('trackerTbody');
+  const allRows = body ? Array.from(body.querySelectorAll(':scope > tr')) : [];
+  const visibleRows = allRows.filter(r => r.style.display !== 'none');
+      const visible = visibleRows.length;
+      const total = allRows.length;
+      const vulnVisibleEl = document.getElementById('vulnVisibleCount');
+      const vulnTotalEl = document.getElementById('vulnTotalCount');
+      if (vulnVisibleEl) vulnVisibleEl.textContent = String(visible);
+      if (vulnTotalEl) vulnTotalEl.textContent = String(total);
+
+      const checkedClients = Array.from(document.querySelectorAll('.client-filter-checkbox:checked')).map(cb => cb.value);
+      const clientCountEl = document.getElementById('clientSelectedCount');
+      const chipsEl = document.getElementById('clientChips');
+      if (clientCountEl) clientCountEl.textContent = checkedClients.length ? `${checkedClients.length} selected` : 'All';
+      if (chipsEl) {
+        if (!checkedClients.length) {
+          chipsEl.textContent = '';
+        } else {
+          const max = 2;
+          const shown = checkedClients.slice(0, max);
+          const more = checkedClients.length - shown.length;
+          chipsEl.textContent = shown.join(', ') + (more > 0 ? ` +${more} more` : '');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not update tracker stats:', e);
+    }
+  }
+
+  // Reset all filters to default
+  function resetAllFilters() {
+    try {
+      // Uncheck client/status filters
+      document.querySelectorAll('.client-filter-checkbox').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.status-filter-checkbox').forEach(cb => cb.checked = false);
+      // Clear months
+      if (document.getElementById('dateSortieMonth')) document.getElementById('dateSortieMonth').value = '';
+      if (document.getElementById('processingDateMonth')) document.getElementById('processingDateMonth').value = '';
+      // Clear searches
+      if (document.getElementById('idBulletinSearchInput')) document.getElementById('idBulletinSearchInput').value = '';
+      if (document.getElementById('productSearchInput')) document.getElementById('productSearchInput').value = '';
+      // Show all rows
+      const body = document.getElementById('trackerTbody');
+      const allRows = body ? Array.from(body.querySelectorAll(':scope > tr')) : [];
+      allRows.forEach(r => r.style.display = '');
+      // Close dropdowns if open
+      ['clientFilterDropdown','statusFilterDropdown','dateSortieDropdown','processingDateDropdown','idBulletinSearchDropdown','productSearchDropdown'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.style.display = 'none';
+      });
+      // Update UI and persist
+      updateStatusBadgeColors();
+      updateTrackerStats();
+      saveFilterState();
+    } catch (e) {
+      console.warn('Failed to reset filters:', e);
+    }
+  }
+
+  // Persist client/status/month filters across reloads/edits
+  function saveFilterState() {
+    try {
+      const clients = Array.from(document.querySelectorAll('.client-filter-checkbox:checked')).map(cb => cb.value);
+      const statuses = Array.from(document.querySelectorAll('.status-filter-checkbox:checked')).map(cb => cb.value);
+      const dateSortieMonth = document.getElementById('dateSortieMonth')?.value || '';
+      const processingDateMonth = document.getElementById('processingDateMonth')?.value || '';
+      const state = { clients, statuses, dateSortieMonth, processingDateMonth };
+      localStorage.setItem('trackerFilters', JSON.stringify(state));
+    } catch (e) {
+      console.warn('Could not save filter state:', e);
+    }
+  }
+  function restoreFilterState() {
+    try {
+      const raw = localStorage.getItem('trackerFilters');
+      if (!raw) return;
+      const state = JSON.parse(raw);
+      if (Array.isArray(state.clients)) {
+        document.querySelectorAll('.client-filter-checkbox').forEach(cb => {
+          cb.checked = state.clients.includes(cb.value);
+        });
+      }
+      if (Array.isArray(state.statuses)) {
+        document.querySelectorAll('.status-filter-checkbox').forEach(cb => {
+          cb.checked = state.statuses.includes(cb.value);
+        });
+      }
+      if (document.getElementById('dateSortieMonth')) {
+        document.getElementById('dateSortieMonth').value = state.dateSortieMonth || '';
+      }
+      if (document.getElementById('processingDateMonth')) {
+        document.getElementById('processingDateMonth').value = state.processingDateMonth || '';
+      }
+      applyCombinedFilters();
+    } catch (e) {
+      console.warn('Could not restore filter state:', e);
+    }
+  }
+
+  // Client filter dropdown logic
+  function toggleClientFilterDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('clientFilterDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', closeClientDropdownOnClick);
+  }
+  function closeClientDropdownOnClick(e) {
+    const dropdown = document.getElementById('clientFilterDropdown');
+    if (!dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeClientDropdownOnClick);
+    }
+  }
+  function clearClientFilter() {
+    document.querySelectorAll('.client-filter-checkbox').forEach(cb => cb.checked = false);
+    applyClientFilter();
+  }
+
+  function updateStatusBadgeColors() {
+    document.querySelectorAll('td:nth-child(6) .status-badge').forEach(function(badge) {
+      badge.style.fontSize = '0.93em';
+      badge.style.padding = '4px 10px';
+      const status = badge.textContent.trim();
+      if (status === 'Clos (Patch cumulative)' || status === 'Clos (Non concerné)' || status === 'Clos (Traité)') {
+        badge.style.background = '#27ae60';
+        badge.style.color = '#fff';
+      } else if (status === 'Open') {
+        badge.style.background = '#ffe066';
+        badge.style.color = '#b8860b';
+      } else if (status === 'WIP') {
+        badge.style.background = '#ff9800';
+        badge.style.color = '#fff';
+      } else if (status === 'NOK') {
+        badge.style.background = '#e74c3c';
+        badge.style.color = '#fff';
+      } else if (status.toLowerCase() === 'pending') {
+        badge.style.background = '#5ec6fa';
+        badge.style.color = '#fff';
+      } else {
+        badge.style.background = '#f0f0f0';
+        badge.style.color = '#888';
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', updateStatusBadgeColors);
+  document.addEventListener('DOMContentLoaded', updateTrackerStats);
+  document.addEventListener('DOMContentLoaded', restoreFilterState);
+
+  function toggleIdBulletinSearchDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('idBulletinSearchDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', closeIdBulletinDropdownOnClick);
+  }
+  function closeIdBulletinDropdownOnClick(e) {
+    const dropdown = document.getElementById('idBulletinSearchDropdown');
+    if (!dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeIdBulletinDropdownOnClick);
+    }
+  }
+  function clearIdBulletinSearch() {
+    document.getElementById('idBulletinSearchInput').value = '';
+    applyIdBulletinSearch();
+  }
+  function applyIdBulletinSearch() {
+    const searchValue = document.getElementById('idBulletinSearchInput').value.trim().toLowerCase();
+    document.querySelectorAll('tbody tr').forEach(row => {
+      const idCell = row.querySelector('td:nth-child(2)');
+      if (!searchValue || (idCell && idCell.textContent.toLowerCase().includes(searchValue))) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    document.getElementById('idBulletinSearchDropdown').style.display = 'none';
+    updateTrackerStats();
+  }
+
+  function toggleProductSearchDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('productSearchDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', closeProductDropdownOnClick);
+  }
+  function closeProductDropdownOnClick(e) {
+    const dropdown = document.getElementById('productSearchDropdown');
+    if (!dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeProductDropdownOnClick);
+    }
+  }
+  function clearProductSearch() {
+    document.getElementById('productSearchInput').value = '';
+    applyProductSearch();
+  }
+  function applyProductSearch() {
+    const searchValue = document.getElementById('productSearchInput').value.trim().toLowerCase();
+    document.querySelectorAll('tbody tr').forEach(row => {
+      const productCell = row.querySelector('td:nth-child(3)');
+      if (!searchValue || (productCell && productCell.textContent.toLowerCase().includes(searchValue))) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    document.getElementById('productSearchDropdown').style.display = 'none';
+    updateTrackerStats();
+  }
+
+  function toggleProcessingDateDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('processingDateDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', closeProcessingDateDropdownOnClick);
+  }
+  function closeProcessingDateDropdownOnClick(e) {
+    const dropdown = document.getElementById('processingDateDropdown');
+    if (!dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeProcessingDateDropdownOnClick);
+    }
+  }
+  function clearProcessingDateFilter() {
+    document.getElementById('processingDateMonth').value = '';
+    applyProcessingDateFilter();
+  }
+  function applyProcessingDateFilter() {
+    applyCombinedFilters();
+    document.getElementById('processingDateDropdown').style.display = 'none';
+    updateTrackerStats();
+  }
+
+  function toggleDateSortieDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('dateSortieDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', closeDateSortieDropdownOnClick);
+  }
+  function closeDateSortieDropdownOnClick(e) {
+    const dropdown = document.getElementById('dateSortieDropdown');
+    if (!dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeDateSortieDropdownOnClick);
+    }
+  }
+  function clearDateSortieFilter() {
+    document.getElementById('dateSortieMonth').value = '';
+    applyDateSortieFilter();
+  }
+  function applyDateSortieFilter() {
+    applyCombinedFilters();
+    document.getElementById('dateSortieDropdown').style.display = 'none';
+    updateTrackerStats();
+  }
+</script>
+{% endblock %}
