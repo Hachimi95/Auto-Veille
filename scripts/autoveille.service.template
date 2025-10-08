@@ -1,0 +1,17 @@
+[Unit]
+Description=Auto-Veille Gunicorn Service
+After=network.target
+
+[Service]
+User=<user>
+Group=www-data
+WorkingDirectory=/home/<user>/Auto-Veille
+Environment="PYTHONUNBUFFERED=1"
+Environment="FLASK_ENV=production"
+EnvironmentFile=/home/<user>/Auto-Veille/.env
+ExecStart=/home/<user>/Auto-Veille/.venv/bin/gunicorn --workers 3 --bind unix:/run/autoveille.sock app:app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

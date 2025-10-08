@@ -15,6 +15,12 @@ from auto_bulletin.mitigation import MitigationHandler
 from auto_bulletin.description import DescriptionHandler
 from auto_bulletin.auto_pdf import generate_pdf_from_json
 import tempfile
+import shutil
+# If you use pdfkit for HTML -> PDF
+try:
+    import pdfkit
+except ImportError:
+    pdfkit = None
 
 app = Flask(__name__)
 
