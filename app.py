@@ -13,13 +13,12 @@ load_dotenv()
 from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
 from auto_bulletin.mitigation import MitigationHandler
 from auto_bulletin.description import DescriptionHandler
-# Ensure the symbol exists even if the import fails for any reason
+# Ensure PDF function is available across OS
 try:
-	# auto_bulletin/auto_pdf.py is now OS-aware (Windows/Word or Linux/wkhtmltopdf)
 	from auto_bulletin.auto_pdf import generate_pdf_from_json
 except Exception as _pdf_import_err:
 	def generate_pdf_from_json(*_args, **_kwargs):
-		raise RuntimeError(f"PDF generation is unavailable: {_pdf_import_err}")
+		raise RuntimeError(f"PDF generation module import failed: {_pdf_import_err}")
 import tempfile
 import shutil
 # If you use pdfkit for HTML -> PDF
@@ -29,6 +28,17 @@ except ImportError:
     pdfkit = None
 
 app = Flask(__name__)
+
+# --- Logging to stdout/stderr so systemd/journalctl captures everything ---
+if not logging.getLogger().handlers:
+	handler = logging.StreamHandler(stream=sys.stdout)
+	formatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s: %(message)s')
+	handler.setFormatter(formatter)
+	logging.getLogger().addHandler(handler)
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+logging.getLogger().setLevel(log_level)
+app.logger.setLevel(log_level)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
 UPLOAD_FOLDER = 'uploads'
 EXPORT_FOLDER = 'exports'
@@ -602,149 +612,149 @@ def delete_product(product_id):
 
 @app.route('/auto_bulletin', methods=['GET', 'POST'])
 def auto_bulletin():
-    extraction_error = None
-    extracted_data = None
-    generated_files = None
-    if request.method == 'POST':
-        url = request.form.get('url')
-        bulletin_id = request.form.get('bulletin_id')
-        if url and bulletin_id:
-            try:
-                cohere_api_key = os.getenv('COHERE_API_KEY')
-                if not cohere_api_key:
-                    extraction_error = 'COHERE_API_KEY environment variable is required for auto_bulletin features. Please set it in your .env file.'
-                    return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
-                
-                # Check if user is confirming/generating (skip extraction)
-                if 'confirm' in request.form:
-                    # User is generating bulletin - reconstruct data from form instead of re-scraping
-                    data = {
-                        'titre': request.form.get('titre', ''),
-                        'Date': request.form.get('Date', ''),
-                        'Produits affectés': request.form.get('Produits affectés', '').split('\n') if request.form.get('Produits affectés') else [],
-                        'CVEs ID': request.form.get('CVEs ID', '').split('\n') if request.form.get('CVEs ID') else [],
-                        'score': request.form.get('score', ''),
-                        'Delai': request.form.get('Delai', ''),
-                        'risques': request.form.get('risques', '').split('\n') if request.form.get('risques') else [],
-                        'Description': request.form.get('Description', ''),
-                        'Exploit': request.form.get('Exploit', 'NON'),
-                        'Mitigations': [],  # Will be processed below
-                        'Références': request.form.get('Références', '').split('\n') if request.form.get('Références') else []
-                    }
-                else:
-                    # User is extracting data - perform scraping
-                    mitigation_handler = MitigationHandler(cohere_api_key)
-                    description_handler = DescriptionHandler(cohere_api_key)
-                    if "dgssi" in url.lower():
-                        scraper = DGSSIScraper(mitigation_handler, description_handler)
-                        data = scraper.scrape_bulletin(url)
-                    elif "cert" in url.lower():
-                        scraper = CERTFRScraper(mitigation_handler)
-                        data = scraper.parse_advisory(url)
-                    else:
-                        extraction_error = "URL non reconnue. Elle doit contenir \"dgssi\" ou \"cert\"."
-                        data = None
-                
-                if data:
-                    # If user is reviewing/confirming edits
-                    if 'confirm' in request.form:
-                        for key in data.keys():
-                            if key in request.form:
-                                value = request.form.get(key)
-                                if key == 'Mitigations':
-                                    import json
-                                    # Always parse mitigation as JSON if possible, else fallback to text parsing
-                                    try:
-                                        parsed = value
-                                        if isinstance(parsed, str):
-                                            parsed = json.loads(parsed)
-                                        # If parsed is a dict with recommendation/versions, wrap in a list
-                                        if isinstance(parsed, dict) and 'recommendation' in parsed and 'versions' in parsed:
-                                            # Ensure versions is a list of strings
-                                            versions = parsed['versions']
-                                            if isinstance(versions, str):
-                                                versions = [v.strip() for v in versions.split(',') if v.strip()]
-                                            elif isinstance(versions, list):
-                                                clean_versions = []
-                                                for v in versions:
-                                                    if isinstance(v, str) and ',' in v:
-                                                        clean_versions.extend([x.strip() for x in v.split(',') if x.strip()])
-                                                    else:
-                                                        clean_versions.append(v.strip() if isinstance(v, str) else str(v).strip())
-                                                versions = clean_versions
-                                            parsed['versions'] = versions
-                                            data[key] = [parsed]
-                                        elif isinstance(parsed, list):
-                                            # Clean all dicts in the list
-                                            clean_list = []
-                                            for mit in parsed:
-                                                if isinstance(mit, dict) and 'recommendation' in mit and 'versions' in mit:
-                                                    versions = mit['versions']
-                                                    if isinstance(versions, str):
-                                                        versions = [v.strip() for v in versions.split(',') if v.strip()]
-                                                    elif isinstance(versions, list):
-                                                        clean_versions = []
-                                                        for v in versions:
-                                                            if isinstance(v, str) and ',' in v:
-                                                                clean_versions.extend([x.strip() for x in v.split(',') if x.strip()])
-                                                            else:
-                                                                clean_versions.append(v.strip() if isinstance(v, str) else str(v).strip())
-                                                        versions = clean_versions
-                                                    mit['versions'] = versions
-                                                clean_list.append(mit)
-                                            data[key] = clean_list
-                                        else:
-                                            data[key] = [{
-                                                'Aucune mitigation': {
-                                                    'recommendation': str(parsed),
-                                                    'versions': []
-                                                }
-                                            }]
-                                    except Exception:
-                                        # Parse simple text format and convert to JSON structure
-                                        lines = [line.strip() for line in value.split('\n') if line.strip()]
-                                        if lines:
-                                            recommendation = ""
-                                            versions = []
-                                            for line in lines:
-                                                if any(keyword in line.lower() for keyword in ['recommandé', 'mise à jour']) and not any(char.isdigit() for char in line):
-                                                    if not recommendation:
-                                                        recommendation = line
-                                                    else:
-                                                        versions.append(line)
-                                                else:
-                                                    versions.append(line)
-                                            if not recommendation and lines:
-                                                recommendation = lines[0]
-                                                versions = lines[1:]
-                                            product_name = "Produit"
-                                            if data.get('titre'):
-                                                title_lower = data['titre'].lower()
-                                                if 'microsoft edge' in title_lower:
-                                                    product_name = "Microsoft Edge"
-                                                elif 'fortinet' in title_lower:
-                                                    product_name = "Fortinet"
-                                                elif 'chrome' in title_lower:
-                                                    product_name = "Google Chrome"
-                                                elif 'mozilla' in title_lower:
-                                                    product_name = "Mozilla"
-                                                elif 'cisco' in title_lower:
-                                                    product_name = "Cisco"
-                                                elif 'veeam' in title_lower:
-                                                    product_name = "Veeam"
-                                            data[key] = [{
-                                                product_name: {
-                                                    'recommendation': recommendation,
-                                                    'versions': versions
-                                                }
-                                            }]
-                                        else:
-                                            data[key] = [{
-                                                'Aucune mitigation': {
-                                                    'recommendation': 'Aucune mitigation fournie',
-                                                    'versions': []
-                                                }
-                                            }]
+	extraction_error = None
+	extracted_data = None
+	generated_files = None
+	if request.method == 'POST':
+		url = request.form.get('url')
+		bulletin_id = request.form.get('bulletin_id')
+		if url and bulletin_id:
+			try:
+				cohere_api_key = os.getenv('COHERE_API_KEY')
+				if not cohere_api_key:
+					extraction_error = 'COHERE_API_KEY environment variable is required for auto_bulletin features. Please set it in your .env file.'
+					return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
+				
+				# Check if user is confirming/generating (skip extraction)
+				if 'confirm' in request.form:
+					# User is generating bulletin - reconstruct data from form instead of re-scraping
+					data = {
+						'titre': request.form.get('titre', ''),
+						'Date': request.form.get('Date', ''),
+						'Produits affectés': request.form.get('Produits affectés', '').split('\n') if request.form.get('Produits affectés') else [],
+						'CVEs ID': request.form.get('CVEs ID', '').split('\n') if request.form.get('CVEs ID') else [],
+						'score': request.form.get('score', ''),
+						'Delai': request.form.get('Delai', ''),
+						'risques': request.form.get('risques', '').split('\n') if request.form.get('risques') else [],
+						'Description': request.form.get('Description', ''),
+						'Exploit': request.form.get('Exploit', 'NON'),
+						'Mitigations': [],  # Will be processed below
+						'Références': request.form.get('Références', '').split('\n') if request.form.get('Références') else []
+					}
+				else:
+					# User is extracting data - perform scraping
+					mitigation_handler = MitigationHandler(cohere_api_key)
+					description_handler = DescriptionHandler(cohere_api_key)
+					if "dgssi" in url.lower():
+						scraper = DGSSIScraper(mitigation_handler, description_handler)
+						data = scraper.scrape_bulletin(url)
+					elif "cert" in url.lower():
+						scraper = CERTFRScraper(mitigation_handler)
+						data = scraper.parse_advisory(url)
+					else:
+						extraction_error = "URL non reconnue. Elle doit contenir \"dgssi\" ou \"cert\"."
+						data = None
+				
+				if data:
+					# If user is reviewing/confirming edits
+					if 'confirm' in request.form:
+						for key in data.keys():
+							if key in request.form:
+								value = request.form.get(key)
+								if key == 'Mitigations':
+									import json
+									# Always parse mitigation as JSON if possible, else fallback to text parsing
+									try:
+										parsed = value
+										if isinstance(parsed, str):
+											parsed = json.loads(parsed)
+										# If parsed is a dict with recommendation/versions, wrap in a list
+										if isinstance(parsed, dict) and 'recommendation' in parsed and 'versions' in parsed:
+											# Ensure versions is a list of strings
+											versions = parsed['versions']
+											if isinstance(versions, str):
+												versions = [v.strip() for v in versions.split(',') if v.strip()]
+											elif isinstance(versions, list):
+												clean_versions = []
+												for v in versions:
+													if isinstance(v, str) and ',' in v:
+														clean_versions.extend([x.strip() for x in v.split(',') if x.strip()])
+													else:
+														clean_versions.append(v.strip() if isinstance(v, str) else str(v).strip())
+												versions = clean_versions
+											parsed['versions'] = versions
+											data[key] = [parsed]
+										elif isinstance(parsed, list):
+											# Clean all dicts in the list
+											clean_list = []
+											for mit in parsed:
+												if isinstance(mit, dict) and 'recommendation' in mit and 'versions' in mit:
+													versions = mit['versions']
+													if isinstance(versions, str):
+														versions = [v.strip() for v in versions.split(',') if v.strip()]
+													elif isinstance(versions, list):
+														clean_versions = []
+														for v in versions:
+															if isinstance(v, str) and ',' in v:
+																clean_versions.extend([x.strip() for x in v.split(',') if x.strip()])
+															else:
+																clean_versions.append(v.strip() if isinstance(v, str) else str(v).strip())
+														versions = clean_versions
+													mit['versions'] = versions
+												clean_list.append(mit)
+											data[key] = clean_list
+										else:
+											data[key] = [{
+												'Aucune mitigation': {
+													'recommendation': str(parsed),
+													'versions': []
+												}
+											}]
+									except Exception:
+										# Parse simple text format and convert to JSON structure
+										lines = [line.strip() for line in value.split('\n') if line.strip()]
+										if lines:
+											recommendation = ""
+											versions = []
+											for line in lines:
+												if any(keyword in line.lower() for keyword in ['recommandé', 'mise à jour']) and not any(char.isdigit() for char in line):
+													if not recommendation:
+														recommendation = line
+													else:
+														versions.append(line)
+												else:
+													versions.append(line)
+											if not recommendation and lines:
+												recommendation = lines[0]
+												versions = lines[1:]
+											product_name = "Produit"
+											if data.get('titre'):
+												title_lower = data['titre'].lower()
+												if 'microsoft edge' in title_lower:
+													product_name = "Microsoft Edge"
+												elif 'fortinet' in title_lower:
+													product_name = "Fortinet"
+												elif 'chrome' in title_lower:
+													product_name = "Google Chrome"
+												elif 'mozilla' in title_lower:
+													product_name = "Mozilla"
+												elif 'cisco' in title_lower:
+													product_name = "Cisco"
+												elif 'veeam' in title_lower:
+													product_name = "Veeam"
+											data[key] = [{
+												product_name: {
+													'recommendation': recommendation,
+													'versions': versions
+												}
+											}]
+										else:
+											data[key] = [{
+												'Aucune mitigation': {
+													'recommendation': 'Aucune mitigation fournie',
+													'versions': []
+												}
+											}]
                                 elif isinstance(data[key], list):
                                     data[key] = [v.strip() for v in value.split('\n') if v.strip()]
                                 else:
@@ -753,15 +763,11 @@ def auto_bulletin():
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
                             tmp_json.flush()
-                            # Use the user-provided bulletin_id for file naming
                             pdf_path = generate_pdf_from_json(tmp_json.name, bulletin_id)
                             word_path = pdf_path.replace('.pdf', '.docx')
-                            generated_files = {
-                                'pdf': os.path.basename(pdf_path)
-                            }
-                            # Only include Word if it really exists (Windows path)
+                            app.logger.info(f"Generated PDF: {pdf_path}")
                             if os.path.exists(word_path):
-                                generated_files['word'] = os.path.basename(word_path)
+                                app.logger.info(f"Generated DOCX: {word_path}")
                         extracted_data = None
                     else:
                         # Format mitigation data for display
@@ -771,15 +777,16 @@ def auto_bulletin():
                 else:
                     extraction_error = 'Impossible d\'extraire les données du bulletin.'
             except Exception as e:
+                app.logger.exception("Auto-bulletin generation failed")
                 extraction_error = f'Erreur lors de l\'extraction: {e}'
-        else:
-            extraction_error = 'Veuillez fournir un identifiant de bulletin (ID) et un lien.'
-    download = request.args.get('download')
-    if download:
-        file_path = os.path.join('auto_bulletin', download)
-        if os.path.exists(file_path):
-            return send_file(file_path, as_attachment=True)
-    return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
+		else:
+			extraction_error = 'Veuillez fournir un identifiant de bulletin (ID) et un lien.'
+	download = request.args.get('download')
+	if download:
+		file_path = os.path.join('auto_bulletin', download)
+		if os.path.exists(file_path):
+			return send_file(file_path, as_attachment=True)
+	return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
 
 @app.route('/dashboard')
 def dashboard():
