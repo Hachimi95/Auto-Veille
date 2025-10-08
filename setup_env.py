@@ -86,27 +86,46 @@ def check_env_file():
     # Extra PDF diagnostics (non-blocking)
     pdf_engine = None
     wkhtml_path = None
-    chromium_path = None
     for line in content.splitlines():
         if line.startswith('PDF_ENGINE='):
             pdf_engine = line.split('=', 1)[1].strip()
         elif line.startswith('WKHTMLTOPDF_PATH='):
             wkhtml_path = line.split('=', 1)[1].strip()
-        elif line.startswith('CHROMIUM_PATH='):
-            chromium_path = line.split('=', 1)[1].strip()
 
     if (pdf_engine or '').lower() == 'wkhtmltopdf':
         detected = shutil.which('wkhtmltopdf')
-        effective = wkhtml_path or detected
-        if not effective:
+        # Also try common install locations (systemd PATH may be minimal)
+        common_paths = ['/usr/bin/wkhtmltopdf', '/usr/local/bin/wkhtmltopdf', '/snap/bin/wkhtmltopdf']
+        first_existing = next((p for p in [wkhtml_path, detected, *common_paths] if p and os.path.exists(p)), None)
+        if not first_existing:
             print("⚠️ PDF warning: PDF_ENGINE=wkhtmltopdf but wkhtmltopdf is not found.")
             print("   Install wkhtmltopdf or set WKHTMLTOPDF_PATH in .env")
+        else:
+            # Auto-fix .env if WKHTMLTOPDF_PATH is missing or empty
+            if not wkhtml_path:
+                print(f"🔧 Setting WKHTMLTOPDF_PATH to detected path: {first_existing}")
+                backup = '.env.backup.autofix'
+                try:
+                    if not os.path.exists(backup):
+                        shutil.copyfile('.env', backup)
+                    # Append or set variable
+                    lines = content.splitlines()
+                    has_key = any(l.startswith('WKHTMLTOPDF_PATH=') for l in lines)
+                    if has_key:
+                        lines = [l if not l.startswith('WKHTMLTOPDF_PATH=') else f'WKHTMLTOPDF_PATH={first_existing}' for l in lines]
+                    else:
+                        lines.append(f'WKHTMLTOPDF_PATH={first_existing}')
+                    with open('.env', 'w') as wf:
+                        wf.write('\n'.join(lines) + '\n')
+                    print("✅ Updated .env with WKHTMLTOPDF_PATH")
+                except Exception as e:
+                    print(f"⚠️ Could not update .env automatically: {e}")
+                    print(f"   Please set WKHTMLTOPDF_PATH={first_existing} manually.")
     return True
 
 if __name__ == "__main__":
     print("🔧 Auto-Veille Environment Setup")
     print("=" * 40)
-    
     if check_env_file():
         print("✅ Environment is ready!")
     else:

@@ -19,12 +19,36 @@ except Exception:
 def get_pdfkit_config():
     if not pdfkit:
         return None
-    path = os.getenv('WKHTMLTOPDF_PATH') or shutil.which('wkhtmltopdf')
-    if path:
+    import shutil
+    candidates = []
+    # 1) .env override
+    env_path = os.getenv('WKHTMLTOPDF_PATH')
+    if env_path:
+        candidates.append(env_path)
+    # 2) PATH discovery (may be empty under systemd)
+    found = shutil.which('wkhtmltopdf')
+    if found:
+        candidates.append(found)
+    # 3) Common Linux install locations
+    candidates += [
+        '/usr/bin/wkhtmltopdf',
+        '/usr/local/bin/wkhtmltopdf',
+        '/snap/bin/wkhtmltopdf'
+    ]
+    # Deduplicate while preserving order
+    seen = set()
+    filtered = []
+    for p in candidates:
+        if p and p not in seen:
+            seen.add(p)
+            filtered.append(p)
+    # Try to build a configuration with the first working candidate
+    for p in filtered:
         try:
-            return pdfkit.configuration(wkhtmltopdf=path)
+            if os.path.exists(p) and os.access(p, os.X_OK):
+                return pdfkit.configuration(wkhtmltopdf=p)
         except Exception:
-            return None
+            continue
     return None
 
 # --- Existing helper functions used by the Word/Windows flow ---
@@ -373,8 +397,9 @@ def _linux_generate_pdf(advisory_data, base_filename_display):
     cfg = get_pdfkit_config()
     if not pdfkit or not cfg:
         raise RuntimeError(
-            "PDF generation not available on Linux. Install wkhtmltopdf (sudo apt-get install -y wkhtmltopdf) "
-            "and ensure WKHTMLTOPDF_PATH is set in .env if needed."
+            "PDF generation not available on Linux. Ensure wkhtmltopdf is installed "
+            "(sudo apt-get install -y wkhtmltopdf) and set WKHTMLTOPDF_PATH in .env if needed. "
+            "Tried: $WKHTMLTOPDF_PATH, PATH, /usr/bin, /usr/local/bin, /snap/bin."
         )
 
     def list_html(items):
