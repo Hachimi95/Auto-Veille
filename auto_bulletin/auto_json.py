@@ -26,12 +26,6 @@ from auto_bulletin.DGSSIS import DGSSIScraper
 def calculate_delai_from_score(score_str):
     """
     Calculate Delai (response deadline) based on CVSS score.
-    
-    Args:
-        score_str (str): CVSS score as string (e.g., "5.4", "6.0 - 9.8", or "-")
-        
-    Returns:
-        str: Delai value (e.g., "30 Jr", "15 Jr", "5 Jr", "2 Jr")
         
     Score ranges:
         0-5: 30 Jr

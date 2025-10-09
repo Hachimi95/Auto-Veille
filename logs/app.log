@@ -1,0 +1,492 @@
+[2025-10-09 12:30:26,882] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 12:30:26,883] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 12:30:26,897] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:30:28,395] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:30:28,400] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:30:43,739] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:43] "GET / HTTP/1.1" 200 -
+[2025-10-09 12:30:44,197] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:44] "GET /static/logo.png HTTP/1.1" 200 -
+[2025-10-09 12:30:47,055] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:47] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:30:47,179] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:47] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:30:51,667] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:51] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:30:51,744] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:51] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:30:52,701] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:52] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:30:52,761] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:30:52] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:31:02,690] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:02] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:31:02,774] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:02] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:31:19,905] WARNING [app.auto_bulletin:768] PDF generation failed, attempting DOCX only: Windows PDF path not shown here
+[2025-10-09 12:31:20,302] INFO [app.auto_bulletin:773] Generated DOCX (fallback): C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\auto_bulletin\07102025-12 - Vulnérabilité dans OpenSSH.docx
+[2025-10-09 12:31:20,306] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:20] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:31:20,364] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:20] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:31:20,393] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:20] "GET /static/doc.png HTTP/1.1" 200 -
+[2025-10-09 12:31:20,393] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:20] "GET /static/pdf.png HTTP/1.1" 200 -
+[2025-10-09 12:31:24,505] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:24] "GET /auto_bulletin?download= HTTP/1.1" 200 -
+[2025-10-09 12:31:24,570] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:24] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:31:40,565] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:40] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:31:40,625] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:40] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:31:51,932] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:51] "[35m[1mPOST /upload HTTP/1.1[0m" 500 -
+[2025-10-09 12:31:52,034] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:52] "GET /upload?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+[2025-10-09 12:31:52,043] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:52] "GET /upload?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+[2025-10-09 12:31:52,075] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:52] "GET /upload?__debugger__=yes&cmd=resource&f=console.png&s=EANiXcZZ1BV7u1RAOYbv HTTP/1.1" 200 -
+[2025-10-09 12:31:52,091] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:31:52] "GET /upload?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+[2025-10-09 12:37:27,891] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 12:37:28,191] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:38:02,501] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:38:02,508] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:38:28,614] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 12:38:28,616] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 12:38:28,616] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:38:29,771] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:38:29,777] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:38:44,810] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:44] "GET / HTTP/1.1" 200 -
+[2025-10-09 12:38:45,107] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:45] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:38:46,867] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:46] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:38:46,927] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:46] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:38:50,961] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:50] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:38:51,063] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:51] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:38:58,239] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:58] "[32mPOST /upload HTTP/1.1[0m" 302 -
+[2025-10-09 12:38:58,266] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:58] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:38:58,321] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:38:58] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:39:04,775] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:39:04] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:39:04,840] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:39:04] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:39:10,053] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:39:10] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:39:10,139] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:39:10] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:45:44,867] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\mitigation.py', reloading
+[2025-10-09 12:45:45,048] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:45:46,770] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:45:46,778] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:46:07,989] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\auto_pdf.py', reloading
+[2025-10-09 12:46:08,140] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:46:56,857] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 12:46:56,859] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 12:46:56,861] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:46:58,202] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:46:58,211] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:47:04,063] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:04] "GET / HTTP/1.1" 200 -
+[2025-10-09 12:47:04,269] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:04] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:09,232] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:09] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:47:09,277] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:09] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:10,271] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:10] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:47:10,326] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:10] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:11,318] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:11] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:47:11,366] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:11] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:17,919] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:17] "[32mPOST /upload HTTP/1.1[0m" 302 -
+[2025-10-09 12:47:17,948] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:17] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:47:18,014] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:18] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:39,527] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:39] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:47:39,594] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:39] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:44,009] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:44] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:47:44,067] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:44] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:46,884] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:46] "GET /clients HTTP/1.1" 200 -
+[2025-10-09 12:47:46,932] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:46] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:48,344] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:48] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:47:48,386] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:48] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:53,162] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:53] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 12:47:53,218] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:53] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:53,852] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:53] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 12:47:53,895] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:53] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:54,145] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:54] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:47:54,186] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:54] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:47:56,489] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:56] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:47:56,527] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:47:56] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:03,642] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:03] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:48:03,681] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:03] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:19,081] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:19] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 12:48:19,139] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:19] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:19,637] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:19] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:48:19,691] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:19] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:22,872] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:22] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:48:22,912] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:22] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:23,881] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:23] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 12:48:23,921] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:23] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:24,371] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:24] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:48:24,414] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:24] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:48:28,404] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:28] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:48:28,441] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:48:28] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:50:53,238] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 12:50:53,239] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 12:50:53,241] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:50:54,346] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:50:54,350] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:50:59,412] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:50:59] "GET / HTTP/1.1" 200 -
+[2025-10-09 12:50:59,614] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:50:59] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:51:01,026] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:51:01] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:51:01,075] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:51:01] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:51:07,253] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:51:07] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:51:07,304] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:51:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:52:00,031] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:52:00] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:52:00,092] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:52:00] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:54:32,350] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\mitigation.py', reloading
+[2025-10-09 12:54:32,541] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:54:34,276] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:54:34,282] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:54:43,428] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 12:54:43,556] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:54:44,808] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:54:44,812] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:54:57,786] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 12:54:57,897] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:54:59,453] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:54:59,458] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:55:04,910] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 12:55:04,911] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 12:55:04,912] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 12:55:06,055] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 12:55:06,059] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 12:55:09,833] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:55:09] "GET / HTTP/1.1" 200 -
+[2025-10-09 12:55:10,025] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:55:10] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:55:11,085] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:55:11] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:55:11,141] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:55:11] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 12:55:17,101] INFO [app.auto_bulletin:759] Raw Mitigations: [{'description': 'Erreur lors de la génération des mitigations'}]
+[2025-10-09 12:55:17,101] INFO [app.auto_bulletin:762] Normalized Mitigations: []
+[2025-10-09 12:55:17,102] INFO [app.auto_bulletin:816] Pre-format Mitigations: []
+[2025-10-09 12:55:17,104] INFO [app.auto_bulletin:819] Post-format Mitigations (text): 
+[2025-10-09 12:55:17,105] INFO [app.auto_bulletin:827] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', 'Mitigations_display', 'Mitigation']
+[2025-10-09 12:55:17,107] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:55:17] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 12:55:17,184] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 12:55:17] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:00:26,257] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:00:26,522] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:00:28,264] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:00:28,271] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:00:49,051] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:00:49,310] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:00:51,149] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:00:51,154] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:00:56,522] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 13:00:56,524] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 13:00:56,527] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:00:57,732] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:00:57,737] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:01:05,110] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:05] "GET / HTTP/1.1" 200 -
+[2025-10-09 13:01:05,334] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:05] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:06,259] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:06] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 13:01:06,315] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:06,786] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:06] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:01:06,857] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:07,094] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:07] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 13:01:07,151] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:07,528] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:07] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:01:07,595] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:07,929] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:07] "GET /dashboard HTTP/1.1" 200 -
+[2025-10-09 13:01:07,979] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:08,032] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:08] "GET /api/kpi/global_overview?month=2025-10 HTTP/1.1" 200 -
+[2025-10-09 13:01:08,033] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:08] "GET /api/kpi/monthly_evolution HTTP/1.1" 200 -
+[2025-10-09 13:01:08,890] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:08] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:01:08,959] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:08] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:10,420] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:10] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:01:10,479] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:10] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:12,551] ERROR [app.auto_bulletin:832] Auto-bulletin generation failed
+Traceback (most recent call last):
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\app.py", line 741, in auto_bulletin
+    mitigation_handler = MitigationAdapter(MitigationHandler(cohere_api_key))
+                         ^^^^^^^^^^^^^^^^^
+NameError: name 'MitigationAdapter' is not defined. Did you mean: 'MitigationHandler'?
+[2025-10-09 13:01:12,556] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:12] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:01:12,609] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:12] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:35,009] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 13:01:35,063] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:35,509] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:01:35,582] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:35,834] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "GET /dashboard HTTP/1.1" 200 -
+[2025-10-09 13:01:35,900] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:01:35,912] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "GET /api/kpi/monthly_evolution HTTP/1.1" 200 -
+[2025-10-09 13:01:35,950] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:01:35] "GET /api/kpi/global_overview?month=2025-10 HTTP/1.1" 200 -
+[2025-10-09 13:02:28,863] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:02:29,158] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:02:30,702] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:02:30,711] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:07:19,491] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:07:19,713] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:07:54,580] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:07:54,591] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:46:12,971] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:12] "GET / HTTP/1.1" 200 -
+[2025-10-09 13:46:13,599] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:13] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:15,068] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:15] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 13:46:15,158] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:15] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:15,437] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:15] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:46:15,500] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:15] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:15,818] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:15] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 13:46:15,874] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:15] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:16,398] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:16] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:46:16,492] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:16] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:16,642] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:16] "GET /dashboard HTTP/1.1" 200 -
+[2025-10-09 13:46:16,708] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:16] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:16,749] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:16] "GET /api/kpi/monthly_evolution HTTP/1.1" 200 -
+[2025-10-09 13:46:16,774] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:16] "GET /api/kpi/global_overview?month=2025-10 HTTP/1.1" 200 -
+[2025-10-09 13:46:17,932] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:17] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:46:18,002] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:18] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:23,354] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:23] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:46:23,443] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:23] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:46:29,704] INFO [app.auto_bulletin:759] Raw Mitigations: [{'description': 'Erreur lors de la génération des mitigations'}]
+[2025-10-09 13:46:29,706] INFO [app.auto_bulletin:761] Normalized Mitigations: []
+[2025-10-09 13:46:29,708] INFO [app.auto_bulletin:818] Pre-format Mitigations: []
+[2025-10-09 13:46:29,733] INFO [app.auto_bulletin:822] Post-format Mitigations (text): 
+[2025-10-09 13:46:29,734] INFO [app.auto_bulletin:828] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'mitigations', 'Remédiation', 'Remédiations', 'remediation', 'remediations']
+[2025-10-09 13:46:29,735] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:29] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:46:29,789] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:46:29] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:49:26,586] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:49:27,254] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:49:59,543] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 13:49:59,545] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 13:49:59,556] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:50:01,081] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:50:01,091] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:50:04,999] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:04] "GET / HTTP/1.1" 200 -
+[2025-10-09 13:50:05,299] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:05] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:07,276] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:07] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 13:50:07,327] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:08,275] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:08] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:50:08,391] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:08] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:12,138] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:12] "[32mPOST /delete_vulnerability/26092025-12%20/Medz HTTP/1.1[0m" 302 -
+[2025-10-09 13:50:12,156] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:12] "GET /tracker?client=Medz HTTP/1.1" 200 -
+[2025-10-09 13:50:12,198] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:12] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:50:12,246] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:12] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:13,526] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:13] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 13:50:13,597] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:13] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:14,326] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:14] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 13:50:14,414] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:14] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:14,828] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:14] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:50:14,931] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:14] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:50:17,092] ERROR [app.auto_bulletin:831] Auto-bulletin generation failed
+Traceback (most recent call last):
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\app.py", line 748, in auto_bulletin
+    data = scraper.parse_advisory(url)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\auto_bulletin\auto_json.py", line 108, in parse_advisory
+    data = _unify_mitigation_key(data)
+                                 ^^^^
+UnboundLocalError: cannot access local variable 'data' where it is not associated with a value
+[2025-10-09 13:50:17,094] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:17] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:50:17,163] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:50:17] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:52:51,343] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:52:51,583] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:53:13,919] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 13:53:13,922] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 13:53:13,923] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:53:31,867] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 13:53:31,868] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 13:53:31,896] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:53:33,100] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:53:33,105] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:53:53,710] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:53:53] "GET / HTTP/1.1" 200 -
+[2025-10-09 13:53:54,360] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:53:54] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:53:55,370] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:53:55] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:53:55,458] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:53:55] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:53:59,795] ERROR [app.auto_bulletin:834] Auto-bulletin generation failed
+Traceback (most recent call last):
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\app.py", line 749, in auto_bulletin
+    data = scraper.parse_advisory(url)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\auto_bulletin\auto_json.py", line 108, in parse_advisory
+    data = _unify_mitigation_key(data)
+                                 ^^^^
+UnboundLocalError: cannot access local variable 'data' where it is not associated with a value
+[2025-10-09 13:53:59,848] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:53:59] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:53:59,910] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:53:59] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:54:36,155] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:54:36,502] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 13:55:28,780] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:55:28,786] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:55:31,737] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 13:55:33,022] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:55:33,028] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:56:13,772] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:56:13] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 13:56:13,957] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:56:13] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:56:14,604] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:56:14] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:56:14,669] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:56:14] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:56:17,450] ERROR [app.auto_bulletin:834] Auto-bulletin generation failed
+Traceback (most recent call last):
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\app.py", line 749, in auto_bulletin
+    data = scraper.parse_advisory(url)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\auto_bulletin\auto_json.py", line 108, in parse_advisory
+    data = _unify_mitigation_key(data)
+                                 ^^^^
+UnboundLocalError: cannot access local variable 'data' where it is not associated with a value
+[2025-10-09 13:56:17,453] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:56:17] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:56:17,498] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:56:17] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:57:11,956] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\auto_json.py', reloading
+[2025-10-09 13:57:13,376] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:57:13,382] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:57:16,495] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\auto_json.py', reloading
+[2025-10-09 13:57:18,085] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:57:18,089] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:57:22,983] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:22] "GET / HTTP/1.1" 200 -
+[2025-10-09 13:57:23,153] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:23] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:57:24,550] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:24] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 13:57:24,624] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:24] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:57:25,302] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:25] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:57:25,374] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:25] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:57:29,300] INFO [app.auto_bulletin:760] Raw Mitigations: [{'description': 'Erreur lors de la génération des mitigations'}]
+[2025-10-09 13:57:29,301] INFO [app.auto_bulletin:762] Normalized Mitigations: []
+[2025-10-09 13:57:29,305] INFO [app.auto_bulletin:830] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'mitigations', 'Remédiation', 'Remédiations', 'remediation', 'remediations']
+[2025-10-09 13:57:29,307] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:29] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:57:29,359] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:57:29] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:58:04,794] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\mitigation.py', reloading
+[2025-10-09 13:58:06,523] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 13:58:06,526] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 13:58:12,898] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:58:12] "GET / HTTP/1.1" 200 -
+[2025-10-09 13:58:13,060] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:58:13] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:58:14,196] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:58:14] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:58:14,255] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:58:14] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 13:58:17,730] INFO [app.auto_bulletin:760] Raw Mitigations: [{'description': 'Erreur lors de la génération des mitigations'}]
+[2025-10-09 13:58:17,731] INFO [app.auto_bulletin:762] Normalized Mitigations: []
+[2025-10-09 13:58:17,732] INFO [app.auto_bulletin:830] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'mitigations', 'Remédiation', 'Remédiations', 'remediation', 'remediations']
+[2025-10-09 13:58:17,733] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:58:17] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 13:58:17,792] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 13:58:17] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 14:02:23,079] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 14:02:23,080] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 14:02:23,082] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 14:02:24,231] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 14:02:24,236] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 14:22:23,764] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 14:22:23] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 14:22:24,351] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 14:22:24] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:01:59,943] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:01:59] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 15:02:00,046] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:02:00] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:03:45,099] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 15:03:45,099] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 15:03:45,104] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:03:46,284] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:03:46,292] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:05:05,325] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:05] "GET / HTTP/1.1" 200 -
+[2025-10-09 15:05:05,681] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:05] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:06,092] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:06] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 15:05:06,158] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:06,743] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:06] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:05:06,816] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:07,343] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:07] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-09 15:05:07,409] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:07,840] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:07] "GET /tracker HTTP/1.1" 200 -
+[2025-10-09 15:05:07,934] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:08,206] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:08] "GET /dashboard HTTP/1.1" 200 -
+[2025-10-09 15:05:08,270] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:08] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:08,319] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:08] "GET /api/kpi/monthly_evolution HTTP/1.1" 200 -
+[2025-10-09 15:05:08,334] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:08] "GET /api/kpi/global_overview?month=2025-10 HTTP/1.1" 200 -
+[2025-10-09 15:05:08,721] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:08] "GET /clients HTTP/1.1" 200 -
+[2025-10-09 15:05:08,811] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:08] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:09,263] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:09] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:05:09,353] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:09] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:12,643] INFO [app.auto_bulletin:760] Raw Mitigations: [{'description': 'Erreur lors de la génération des mitigations'}]
+[2025-10-09 15:05:12,643] INFO [app.auto_bulletin:762] Normalized Mitigations: []
+[2025-10-09 15:05:12,658] INFO [app.auto_bulletin:830] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'mitigations', 'Remédiation', 'Remédiations', 'remediation', 'remediations']
+[2025-10-09 15:05:12,659] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:12] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:05:12,712] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:05:12] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:05:44,878] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\mitigation.py', reloading
+[2025-10-09 15:05:45,166] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:05:46,441] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:05:46,444] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:05:59,616] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\auto_json.py', reloading
+[2025-10-09 15:05:59,892] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:06:01,341] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:06:01,347] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:06:07,831] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\auto_json.py', reloading
+[2025-10-09 15:06:07,967] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:06:09,312] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:06:09,317] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:06:22,156] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\auto_bulletin\\auto_json.py', reloading
+[2025-10-09 15:06:22,479] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:06:32,400] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 15:06:32,400] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 15:06:32,402] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:06:33,570] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:06:33,574] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:06:34,222] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:06:34] "GET / HTTP/1.1" 200 -
+[2025-10-09 15:06:34,416] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:06:34] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:06:52,376] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:06:52] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:06:52,541] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:06:52] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:06:57,342] INFO [app.auto_bulletin:760] Raw Mitigations: [{'description': 'Erreur lors de la génération des mitigations'}]
+[2025-10-09 15:06:57,342] INFO [app.auto_bulletin:762] Normalized Mitigations: []
+[2025-10-09 15:06:57,347] INFO [app.auto_bulletin:830] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'mitigations', 'Remédiation', 'Remédiations', 'remediation', 'remediations']
+[2025-10-09 15:06:57,349] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:06:57] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:06:57,457] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:06:57] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:08:31,251] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 15:08:31,642] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:09:21,259] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:09:21,285] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:10:36,778] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 15:10:37,111] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:10:39,278] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:10:39,296] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:37:06,727] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 15:37:07,049] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:37:12,229] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:37:12,260] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:39:16,157] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:39:16] "GET / HTTP/1.1" 200 -
+[2025-10-09 15:39:16,757] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:39:16] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:39:17,819] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:39:17] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 15:39:18,041] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:39:18] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:39:19,452] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:39:19] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:39:19,626] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:39:19] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:40:06,234] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:06] "GET / HTTP/1.1" 200 -
+[2025-10-09 15:40:06,346] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:40:07,030] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:07] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 15:40:07,188] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:40:07,472] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:07] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:40:07,637] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:07] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:40:15,722] INFO [app.auto_bulletin:760] Raw Mitigations: [{'Microsoft Edge': {'recommendation': 'Mettre à jour Microsoft Edge vers la version:', 'versions': ['Microsoft Edge 138.0.3351.65 ou ultérieure']}}]
+[2025-10-09 15:40:15,722] INFO [app.auto_bulletin:762] Normalized Mitigations: []
+[2025-10-09 15:40:15,722] INFO [app.auto_bulletin:830] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'remédiation', 'remédiations']
+[2025-10-09 15:40:15,725] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:15] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:40:15,812] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:40:15] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:48:14,281] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 15:48:14,281] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 15:48:14,281] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 15:48:16,074] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 15:48:16,085] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 15:48:33,322] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:33] "GET / HTTP/1.1" 200 -
+[2025-10-09 15:48:33,787] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:33] "GET /static/logo.png HTTP/1.1" 200 -
+[2025-10-09 15:48:36,218] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:36] "GET /upload HTTP/1.1" 200 -
+[2025-10-09 15:48:36,370] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:36] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:48:37,564] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:37] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:48:37,730] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:37] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 15:48:42,849] INFO [app.auto_bulletin:761] Raw Mitigations: [{'Microsoft Edge': {'recommendation': 'Mise à jour Microsoft Edge vers la version:', 'versions': ['Microsoft Edge 138.0.3351.65 ou ultérieure']}}]
+[2025-10-09 15:48:42,858] INFO [app.auto_bulletin:763] Normalized Mitigations: [{'Microsoft Edge': {'recommendation': 'Mise à jour Microsoft Edge vers la version:', 'versions': ['Microsoft Edge 138.0.3351.65 ou ultérieure']}}]
+[2025-10-09 15:48:42,859] INFO [app.auto_bulletin:831] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'remédiation', 'remédiations']
+[2025-10-09 15:48:42,859] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:42] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 15:48:42,963] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 15:48:42] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 16:02:47,509] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 16:02:47,509] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 16:02:47,540] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 16:02:50,375] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 16:02:50,389] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 16:38:38,363] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-09 16:38:38,363] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-09 16:38:38,389] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 16:38:41,287] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 16:38:41,294] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 16:40:58,282] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:40:58] "GET / HTTP/1.1" 200 -
+[2025-10-09 16:40:58,875] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:40:58] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 16:40:59,304] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:40:59] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 16:40:59,457] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:40:59] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 16:41:06,752] INFO [app.auto_bulletin:759] Raw Mitigations: [{'Microsoft Edge': {'recommendation': 'Mettre à jour Microsoft Edge vers la version:', 'versions': ['Microsoft Edge 138.0.3351.65 ou ultérieure']}}]
+[2025-10-09 16:41:06,755] INFO [app.auto_bulletin:761] Normalized Mitigations: []
+[2025-10-09 16:41:06,755] INFO [app.auto_bulletin:829] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'remédiation', 'remédiations']
+[2025-10-09 16:41:06,759] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:41:06] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 16:41:06,868] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:41:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 16:42:46,007] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-09 16:42:46,447] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-09 16:42:50,397] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-09 16:42:50,410] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-09 16:43:11,099] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:43:11] "GET / HTTP/1.1" 200 -
+[2025-10-09 16:43:11,445] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:43:11] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 16:43:12,685] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:43:12] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 16:43:12,812] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:43:12] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-09 16:43:18,960] INFO [app.auto_bulletin:763] Raw Mitigations: [{'Microsoft Edge': {'recommendation': 'Mise à jour Microsoft Edge vers la version:', 'versions': ['Microsoft Edge 138.0.3351.65 ou ultérieure']}}]
+[2025-10-09 16:43:18,962] INFO [app.auto_bulletin:765] Normalized Mitigations: [{'Microsoft Edge': {'recommendation': 'Mise à jour Microsoft Edge vers la version:', 'versions': ['Microsoft Edge 138.0.3351.65 ou ultérieure']}}]
+[2025-10-09 16:43:18,962] INFO [app.auto_bulletin:833] Keys in extracted_data: ['titre', 'Date', 'risques', 'Produits affectés', 'Description', 'Exploit', 'Références', 'CVEs ID', 'Mitigations', 'score', 'Delai', '_Mitigations_struct', 'Mitigations_display', 'Mitigation', 'mitigation', 'remédiation', 'remédiations']
+[2025-10-09 16:43:18,962] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:43:18] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-09 16:43:19,043] INFO [werkzeug._log:97] 127.0.0.1 - - [09/Oct/2025 16:43:19] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
