@@ -181,8 +181,6 @@ def format_mitigation_for_display(mitigation_data):
     return '\n'.join([ln for ln in formatted_lines if ln and 'versions"' not in ln.lower() and '"versions"' not in ln.lower()])
 
 
-from auto_bulletin.utils import normalize_mitigations
-
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -719,12 +717,8 @@ def auto_bulletin():
                     # Normalize mitigations format
                     if 'Mitigations' in data:
                         data['Mitigations'] = normalize_mitigations(data['Mitigations'])
-                    
                     if 'confirm' in request.form:
-                        # Final processing before PDF generation
                         data = sanitize_extracted_data(data)
-                        
-                        # Handle form updates
                         for key in list(data.keys()):
                             if key in request.form:
                                 value = request.form.get(key)
@@ -735,8 +729,6 @@ def auto_bulletin():
                                         data[key] = [l.strip() for l in value.split('\n') if l.strip()]
                                     else:
                                         data[key] = value.strip()
-                        
-                        # Generate PDF
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
@@ -746,17 +738,13 @@ def auto_bulletin():
                             app.logger.info(f"Generated PDF: {pdf_path}")
                             if os.path.exists(word_path):
                                 app.logger.info(f"Generated DOCX: {word_path}")
-                        
-                        # Prepare download files
                         generated_files = []
                         if os.path.exists(pdf_path):
                             generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
                         if os.path.exists(word_path):
                             generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
-                        
                         os.unlink(tmp_json.name)
                     else:
-                        # Show extracted data for review
                         extracted_data = data
                 else:
                     extraction_error = 'Impossible d\'extraire les données du bulletin.'
