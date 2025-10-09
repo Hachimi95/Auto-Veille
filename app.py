@@ -738,21 +738,26 @@ def auto_bulletin():
                         data = None
 
                 if data:
-                    # Normalize mitigations format
+                    # Always normalize scraped/edited mitigations to a structured list first
                     if 'Mitigations' in data:
                         data['Mitigations'] = normalize_mitigations(data['Mitigations'])
+
                     if 'confirm' in request.form:
+                        # Final processing before PDF generation
                         data = sanitize_extracted_data(data)
                         for key in list(data.keys()):
                             if key in request.form:
                                 value = request.form.get(key)
                                 if key == 'Mitigations':
+                                    # Convert textarea back to structured list
                                     data[key] = normalize_mitigations(value)
                                 else:
                                     if isinstance(data[key], list):
                                         data[key] = [l.strip() for l in value.split('\n') if l.strip()]
                                     else:
                                         data[key] = value.strip()
+
+                        # ...existing code that writes tmp_json and calls generate_pdf_from_json...
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
@@ -769,19 +774,20 @@ def auto_bulletin():
                             generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
                         os.unlink(tmp_json.name)
                     else:
+                        # Preview mode: convert structured mitigations to display string for the textarea
+                        if 'Mitigations' in data:
+                            data['Mitigations'] = format_mitigation_for_display(data['Mitigations'])
                         extracted_data = data
                 else:
-                    extraction_error = 'Impossible d\'extraire les données du bulletin.'
+                    extraction_error = "Impossible d'extraire les données du bulletin."
             except Exception as e:
                 app.logger.exception("Auto-bulletin generation failed")
-                extraction_error = f'Erreur lors de l\'extraction: {e}'
-        else:
-            extraction_error = 'Veuillez fournir un identifiant de bulletin (ID) et un lien.'
-    
-    return render_template('auto_bulletin.html', 
-                         extraction_error=extraction_error, 
-                         extracted_data=extracted_data, 
-                         generated_files=generated_files)
+                extraction_error = f"Erreur lors de l'extraction: {e}"
+
+    return render_template('auto_bulletin.html',
+                           extraction_error=extraction_error,
+                           extracted_data=extracted_data,
+                           generated_files=generated_files)
 
 @app.route('/dashboard')
 def dashboard():
