@@ -14,7 +14,7 @@ from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
 from auto_bulletin.mitigation import MitigationHandler
 from auto_bulletin.description import DescriptionHandler
 
-# Ensure PDF generator import never causes NameError; give clear runtime error if import fails
+# Safe PDF import with fallback
 try:
     from auto_bulletin.auto_pdf import generate_pdf_from_json
 except Exception as _pdf_import_err:
@@ -23,22 +23,20 @@ except Exception as _pdf_import_err:
 
 app = Flask(__name__)
 
-# Configure logging to stdout so systemd/journalctl captures it
+# Configure logging to stdout for systemd/journalctl
 if not logging.getLogger().handlers:
     _handler = logging.StreamHandler(stream=sys.stdout)
-    _handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s in %(name)s: %(message)s'))
+    _handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
     logging.getLogger().addHandler(_handler)
 logging.getLogger().setLevel(os.getenv('LOG_LEVEL', 'INFO').upper())
 app.logger.setLevel(logging.getLogger().level)
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
 
-# Health endpoint
 @app.route('/_health')
 def _health():
     return jsonify(ok=True), 200
 
 def sanitize_extracted_data(data: dict) -> dict:
-    # Trim strings and elements inside lists
+    """Trim strings and clean list elements"""
     for key in list(data.keys()):
         if isinstance(data[key], str):
             data[key] = data[key].strip()
@@ -46,19 +44,60 @@ def sanitize_extracted_data(data: dict) -> dict:
             data[key] = [x.strip() if isinstance(x, str) else x for x in data[key]]
     return data
 
-def _parse_mitigation_details(details: dict) -> dict:
-    """Return a normalized dict with 'recommendation' and 'versions' (list of stripped strings)."""
-    parsed = {}
-    if not isinstance(details, dict):
-        return parsed
-    if 'recommendation' in details:
-        parsed['recommendation'] = (details.get('recommendation') or '').strip()
-    versions = details.get('versions', [])
-    if isinstance(versions, list):
-        parsed['versions'] = [v.strip() for v in versions if isinstance(v, str) and v.strip()]
-    else:
-        parsed['versions'] = []
-    return parsed
+def normalize_mitigations(raw):
+    """
+    Convert mitigation input to standardized format:
+    Returns: [{'recommendation': str, 'versions': [str, ...]}, ...]
+    """
+    import json
+    
+    def clean_versions(v):
+        if isinstance(v, str):
+            return [x.strip() for x in v.split(',') if x.strip()]
+        if isinstance(v, list):
+            cleaned = []
+            for item in v:
+                if isinstance(item, str) and ',' in item:
+                    cleaned.extend([x.strip() for x in item.split(',') if x.strip()])
+                else:
+                    cleaned.append(item.strip() if isinstance(item, str) else str(item).strip())
+            return cleaned
+        return []
+    
+    if raw is None or raw == '':
+        return []
+    
+    # Try JSON decode if string
+    if isinstance(raw, str):
+        txt = raw.strip()
+        if not txt:
+            return []
+        try:
+            raw = json.loads(txt)
+        except Exception:
+            return [{'recommendation': txt, 'versions': []}]
+    
+    # Single dict
+    if isinstance(raw, dict):
+        rec = (raw.get('recommendation') or '').strip()
+        vers = clean_versions(raw.get('versions', []))
+        return [{'recommendation': rec, 'versions': vers}] if rec or vers else []
+    
+    # List input
+    if isinstance(raw, list):
+        out = []
+        for item in raw:
+            if isinstance(item, dict):
+                rec = (item.get('recommendation') or '').strip()
+                vers = clean_versions(item.get('versions', []))
+                if rec or vers:
+                    out.append({'recommendation': rec, 'versions': vers})
+            elif isinstance(item, str) and item.strip():
+                out.append({'recommendation': item.strip(), 'versions': []})
+        return out
+    
+    # Fallback
+    return [{'recommendation': str(raw).strip(), 'versions': []}] if str(raw).strip() else []
 
 UPLOAD_FOLDER = 'uploads'
 EXPORT_FOLDER = 'exports'
@@ -634,31 +673,29 @@ def delete_product(product_id):
 def auto_bulletin():
     extraction_error = None
     extracted_data = None
-    generated_files = None
+    generated_files = []
+
     if request.method == 'POST':
-        url = request.form.get('url')
         bulletin_id = request.form.get('bulletin_id')
-        if url and bulletin_id:
+        url = request.form.get('url')
+        
+        if bulletin_id and url:
             try:
                 cohere_api_key = os.getenv('COHERE_API_KEY')
-                if not cohere_api_key:
-                    extraction_error = 'COHERE_API_KEY environment variable is required for auto_bulletin features. Please set it in your .env file.'
-                    return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
                 
-                # Check if user is confirming/generating (skip extraction)
-                if 'confirm' in request.form:
-                    # User is generating bulletin - reconstruct data from form instead of re-scraping
+                if 'edit_data' in request.form:
+                    # User is editing extracted data
                     data = {
                         'titre': request.form.get('titre', ''),
-                        'Date': request.form.get('Date', ''),
-                        'Produits affectés': request.form.get('Produits affectés', '').split('\n') if request.form.get('Produits affectés') else [],
                         'CVEs ID': request.form.get('CVEs ID', '').split('\n') if request.form.get('CVEs ID') else [],
-                        'score': request.form.get('score', ''),
-                        'Delai': request.form.get('Delai', ''),
-                        'risques': request.form.get('risques', '').split('\n') if request.form.get('risques') else [],
+                        'Produits affectés': request.form.get('Produits affectés', '').split('\n') if request.form.get('Produits affectés') else [],
                         'Description': request.form.get('Description', ''),
-                        'Exploit': request.form.get('Exploit', 'NON'),
-                        'Mitigations': [],  # Will be processed below
+                        'Mitigations': normalize_mitigations(request.form.get('Mitigations', '')),
+                        'risques': request.form.get('risques', '').split('\n') if request.form.get('risques') else [],
+                        'Exploit': request.form.get('Exploit', ''),
+                        'Delai': request.form.get('Delai', ''),
+                        'score': request.form.get('score', ''),
+                        'Date': request.form.get('Date', ''),
                         'Références': request.form.get('Références', '').split('\n') if request.form.get('Références') else []
                     }
                 else:
@@ -674,24 +711,29 @@ def auto_bulletin():
                     else:
                         extraction_error = "URL non reconnue. Elle doit contenir \"dgssi\" ou \"cert\"."
                         data = None
-                
+
                 if data:
-                    # If user is reviewing/confirming edits
+                    # Normalize mitigations format
+                    if 'Mitigations' in data:
+                        data['Mitigations'] = normalize_mitigations(data['Mitigations'])
+                    
                     if 'confirm' in request.form:
-                        # Ensure data is clean and consistently formatted
+                        # Final processing before PDF generation
                         data = sanitize_extracted_data(data)
-                        for key in data.keys():
+                        
+                        # Handle form updates
+                        for key in list(data.keys()):
                             if key in request.form:
                                 value = request.form.get(key)
                                 if key == 'Mitigations':
                                     data[key] = normalize_mitigations(value)
                                 else:
-                                    # Default behavior: replace with form value (handle multiline lists)
                                     if isinstance(data[key], list):
-                                        # Split on newlines if user gave multiline input
                                         data[key] = [l.strip() for l in value.split('\n') if l.strip()]
                                     else:
                                         data[key] = value.strip()
+                        
+                        # Generate PDF
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
@@ -701,18 +743,30 @@ def auto_bulletin():
                             app.logger.info(f"Generated PDF: {pdf_path}")
                             if os.path.exists(word_path):
                                 app.logger.info(f"Generated DOCX: {word_path}")
-                        extracted_data = None
+                        
+                        # Prepare download files
+                        generated_files = []
+                        if os.path.exists(pdf_path):
+                            generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
+                        if os.path.exists(word_path):
+                            generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
+                        
+                        os.unlink(tmp_json.name)
                     else:
-                        # Format mitigation data for display
-                        if 'Mitigations' in data:
-                            data['Mitigations_display'] = format_mitigation_for_display(data['Mitigations'])
+                        # Show extracted data for review
                         extracted_data = data
                 else:
-                    extraction_error = "Impossible d'extraire les données du bulletin."
+                    extraction_error = 'Impossible d\'extraire les données du bulletin.'
             except Exception as e:
                 app.logger.exception("Auto-bulletin generation failed")
-                extraction_error = f"Erreur lors de l'extraction: {e}"
-    return render_template('auto_bulletin.html', extraction_error=extraction_error, extracted_data=extracted_data, generated_files=generated_files)
+                extraction_error = f'Erreur lors de l\'extraction: {e}'
+        else:
+            extraction_error = 'Veuillez fournir un identifiant de bulletin (ID) et un lien.'
+    
+    return render_template('auto_bulletin.html', 
+                         extraction_error=extraction_error, 
+                         extracted_data=extracted_data, 
+                         generated_files=generated_files)
 
 @app.route('/dashboard')
 def dashboard():
@@ -842,60 +896,6 @@ if __name__ == '__main__':
     app.run(debug=True)
 if __name__ == '__main__':
     app.run(debug=True)
-            'filters': {
-                'month': month
-            }
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/kpi/global_overview')
-def api_global_overview():
-    """API endpoint for global KPI overview across all clients"""
-    month = request.args.get('month')
-    
-    try:
-        clients = db.get_client_names()
-        global_data = {
-            'clients_summary': {},
-            'total_counts': {
-                'status': {},
-                'sla': {}
-            }
-        }
-        
-        # Get global totals directly (not per client to avoid double counting)
-        global_open_vs_closed = db.get_open_vs_closed(None, month)
-        global_sla = db.get_sla_compliance(None, month)
-        
-        # Store global totals
-        global_data['total_counts']['status'] = global_open_vs_closed
-        global_data['total_counts']['sla'] = global_sla
-        
-        # Also get individual client data for reference
-        for client in clients:
-            client_data = db.get_kpi_summary(client, month)
-            global_data['clients_summary'][client] = client_data
-        
-        return jsonify({
-            'success': True,
-            'data': global_data,
-            'total_clients': len(clients),
-            'filters': {
-                'month': month
-            }
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/auto_patch', methods=['GET', 'POST'])
-def auto_patch():
-    message = None
-    error = None
-    if request.method == 'POST':
-        try:
-            from auto_patch.script import process_uploaded_excel
-            # Get uploaded file
             file = request.files.get('excel_file')
             if not file:
                 error = "Veuillez sélectionner un fichier Excel."
