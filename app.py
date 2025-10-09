@@ -9,6 +9,9 @@ import io
 from database.db import clean_field
 import sqlite3
 import json
+import logging
+import sys
+import tempfile
 load_dotenv()
 from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
 from auto_bulletin.mitigation import MitigationHandler
@@ -891,43 +894,5 @@ def auto_patch():
     return render_template('auto_patch.html', error=error, message=message)
 
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
-if __name__ == '__main__':
-    app.run(debug=True)
-            file = request.files.get('excel_file')
-            if not file:
-                error = "Veuillez sélectionner un fichier Excel."
-                return render_template('auto_patch.html', error=error, message=message)
-            
-            # Validate file extension
-            if not file.filename.lower().endswith(('.xlsx', '.xls')):
-                error = "Veuillez sélectionner un fichier Excel valide (.xlsx ou .xls)."
-                return render_template('auto_patch.html', error=error, message=message)
-            
-            # Get sheet name (optional)
-            sheet_name = request.form.get('sheet_name') or None
-            
-            # Process file using module
-            output_path, output_filename, cleanup_fn = process_uploaded_excel(file, sheet_name)
-            
-            response = send_file(
-                output_path,
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                as_attachment=True,
-                download_name=output_filename
-            )
-            response.call_on_close(cleanup_fn)
-            return response
-        except Exception as e:
-            error = f"Erreur lors du traitement : {str(e)}"
-    
-    return render_template('auto_patch.html', error=error, message=message)
-
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
 if __name__ == '__main__':
     app.run(debug=True)
