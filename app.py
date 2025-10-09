@@ -12,6 +12,7 @@ import json
 import logging
 import sys
 import tempfile
+from logging.handlers import RotatingFileHandler  # added
 load_dotenv()
 from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
 from auto_bulletin.mitigation import MitigationHandler
@@ -26,13 +27,36 @@ except Exception as _pdf_import_err:
 
 app = Flask(__name__)
 
-# Configure logging to stdout for systemd/journalctl
-if not logging.getLogger().handlers:
-    _handler = logging.StreamHandler(stream=sys.stdout)
-    _handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
-    logging.getLogger().addHandler(_handler)
-logging.getLogger().setLevel(os.getenv('LOG_LEVEL', 'INFO').upper())
-app.logger.setLevel(logging.getLogger().level)
+# Enhanced logging configuration (replaces previous logging block)
+log_dir = 'logs'
+os.makedirs(log_dir, exist_ok=True)
+
+console_handler = logging.StreamHandler(stream=sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter(
+    '[%(asctime)s] %(levelname)s [%(name)s:%(lineno)d] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+))
+
+file_handler = RotatingFileHandler(
+    os.path.join(log_dir, 'app.log'),
+    maxBytes=10485760,  # 10MB
+    backupCount=10
+)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter(
+    '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s'
+))
+
+root_logger = logging.getLogger()
+# Optional: avoid duplicate handlers on reloads
+# root_logger.handlers.clear()
+root_logger.setLevel(os.getenv('LOG_LEVEL', 'INFO').upper())
+root_logger.addHandler(console_handler)
+root_logger.addHandler(file_handler)
+
+app.logger.setLevel(logging.INFO)
+# ...existing code...
 
 @app.route('/_health')
 def _health():
