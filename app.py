@@ -56,11 +56,16 @@ root_logger.addHandler(console_handler)
 root_logger.addHandler(file_handler)
 
 app.logger.setLevel(logging.INFO)
-# ...existing code...
 
 @app.route('/_health')
 def _health():
     return jsonify(ok=True), 200
+
+# Ensure upload/export dirs exist and are available via app.config
+app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
+app.config['EXPORT_FOLDER'] = os.environ.get('EXPORT_FOLDER', 'exports')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 
 def sanitize_extracted_data(data: dict) -> dict:
     """Trim strings and clean list elements"""
@@ -136,6 +141,16 @@ def _unify_mitigation_key(data: dict) -> dict:
         data['Mitigations'] = data.get('Mitigations', data.pop(found_key))
     return data
 
+def parse_date_to_ymd(date_str):
+    """Convert date string to YYYY-MM-DD if possible, else return as is."""
+    from datetime import datetime
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
+        try:
+            return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+        except Exception:
+            continue
+    return date_str
+
 def format_mitigation_for_display(mitigation_data):
     """Format mitigation data for display in textarea
 
@@ -199,6 +214,7 @@ def format_mitigation_for_display(mitigation_data):
     # Fallback
     return '\n'.join([ln for ln in formatted_lines if ln and 'versions"' not in ln.lower() and '"versions"' not in ln.lower()])
 
+from auto_bulletin.utils import normalize_mitigations
 
 @app.route('/')
 def home():
@@ -214,7 +230,9 @@ def upload():
         for file in files:
             if file:
                 print(f"🔍 Processing file: {file.filename}")
-                path = os.path.join(UPLOAD_FOLDER, file.filename)
+                upload_dir = app.config.get('UPLOAD_FOLDER', 'uploads')
+                os.makedirs(upload_dir, exist_ok=True)
+                path = os.path.join(upload_dir, file.filename)
                 file.save(path)
                 print(f"🔍 File saved to: {path}")
 
@@ -698,7 +716,8 @@ def auto_bulletin():
     if request.method == 'POST':
         bulletin_id = request.form.get('bulletin_id')
         url = request.form.get('url')
-        
+        data = None  # initialize to avoid UnboundLocalError on exceptional paths
+
         if bulletin_id and url:
             try:
                 cohere_api_key = os.getenv('COHERE_API_KEY')
@@ -720,7 +739,8 @@ def auto_bulletin():
                     }
                 else:
                     # User is extracting data - perform scraping
-                    mitigation_handler = MitigationHandler(cohere_api_key)
+                    # Wrap handler to match scraper’s expected method signature
+                    mitigation_handler = MitigationAdapter(MitigationHandler(cohere_api_key))
                     description_handler = DescriptionHandler(cohere_api_key)
                     if "dgssi" in url.lower():
                         scraper = DGSSIScraper(mitigation_handler, description_handler)
@@ -735,58 +755,87 @@ def auto_bulletin():
                 if data:
                     # Always unify key name first, then normalize structure
                     data = _unify_mitigation_key(data)
+                    
+                    # Ensure Mitigations are normalized to structured format
                     if 'Mitigations' in data:
+                        app.logger.info(f"Raw Mitigations: {data['Mitigations']}")
                         data['Mitigations'] = normalize_mitigations(data['Mitigations'])
+                        app.logger.info(f"Normalized Mitigations: {data['Mitigations']}")
 
                     if 'confirm' in request.form:
                         # Final processing before DOCX/PDF generation
                         data = sanitize_extracted_data(data)
                         for key in list(data.keys()):
-                            if key in request.form:
+                            if key in request.form and key != 'Mitigations':
                                 value = request.form.get(key)
-                                if key == 'Mitigations':
-                                    data[key] = normalize_mitigations(value)
+                                if isinstance(data[key], list):
+                                    data[key] = [l.strip() for l in value.split('\n') if l.strip()]
                                 else:
-                                    if isinstance(data[key], list):
-                                        data[key] = [l.strip() for l in value.split('\n') if l.strip()]
-                                    else:
-                                        data[key] = value.strip()
-
+                                    data[key] = value.strip()
+                        # Accept mitigation from either field name; if not provided, keep structured copy
+                        mit_from_form = request.form.get('Mitigations', request.form.get('Mitigation', '')).strip()
+                        if mit_from_form:
+                            data['Mitigations'] = normalize_mitigations(mit_from_form)
+                        else:
+                            # fallback to hidden structured JSON if present
+                            hidden_struct = request.form.get('_Mitigations_struct', '')
+                            if hidden_struct:
+                                try:
+                                    data['Mitigations'] = normalize_mitigations(hidden_struct)
+                                except Exception:
+                                    app.logger.warning("Failed to parse _Mitigations_struct hidden field")
+                        pdf_path = None
+                        word_path = None
                         # Generate files
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
                             tmp_json.flush()
-                            pdf_path = None
-                            word_path = None
                             try:
                                 pdf_path = generate_pdf_from_json(tmp_json.name, bulletin_id)
                                 word_path = pdf_path.replace('.pdf', '.docx')
                                 app.logger.info(f"Generated PDF: {pdf_path}")
                             except Exception as e:
                                 app.logger.warning(f"PDF generation failed, attempting DOCX only: {e}")
-                                # Fallback to DOCX only
                                 try:
                                     from auto_bulletin.auto_pdf import generate_docx_from_json
                                     word_path = generate_docx_from_json(tmp_json.name, bulletin_id)
                                     extraction_error = "PDF non généré (LibreOffice manquant). DOCX disponible au téléchargement."
                                     app.logger.info(f"Generated DOCX (fallback): {word_path}")
-                                except Exception as e2:
+                                except Exception:
                                     app.logger.exception("DOCX generation failed")
                                     raise
+                            finally:
+                                try:
+                                    os.unlink(tmp_json.name)
+                                except Exception:
+                                    pass
 
-                    # Prepare download list
-                    generated_files = []
-                    if pdf_path and os.path.exists(pdf_path):
-                        generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
-                    if word_path and os.path.exists(word_path):
-                        generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
-                    os.unlink(tmp_json.name)
+                        # Prepare download list (inside confirm)
+                        generated_files = []
+                        if pdf_path and os.path.exists(pdf_path):
+                            generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
+                        if word_path and os.path.exists(word_path):
+                            generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
+                    else:
+                        # Preview: convert structured list to a readable textarea string
+                        if 'Mitigations' in data:
+                            # Preserve structured for hidden field if your template carries it, but always expose text
+                            data['_Mitigations_struct'] = data['Mitigations']
+                            mit_text = format_mitigation_for_display(data['Mitigations'])
+                            data['Mitigations_display'] = mit_text
+                            # Also set common field names so the textarea binds regardless of template
+                            for k in ['Mitigations', 'Mitigation', 'mitigation', 'remédiation', 'remédiations']:
+                                data[k] = mit_text
+                        extracted_data = data
+                        app.logger.info(f"Keys in extracted_data: {list(extracted_data.keys())}")
                 else:
                     extraction_error = "Impossible d'extraire les données du bulletin."
             except Exception as e:
                 app.logger.exception("Auto-bulletin generation failed")
                 extraction_error = f"Erreur lors de l'extraction: {e}"
+        else:
+            extraction_error = "Veuillez fournir un identifiant de bulletin (ID) et un lien."
 
     return render_template('auto_bulletin.html',
                            extraction_error=extraction_error,
@@ -915,6 +964,26 @@ def auto_patch():
     
     return render_template('auto_patch.html', error=error, message=message)
 
+# Adapter to absorb extra args some scrapers pass into generate_mitigation
+class MitigationAdapter:
+    def __init__(self, handler):
+        self._h = handler
+
+    def __getattr__(self, name):
+        # Delegate any missing attribute/method to the underlying handler
+        return getattr(self._h, name)
+
+    def generate_mitigation(self, *args, **kwargs):
+        try:
+            # Most scrapers pass (source, bulletin_info, ...). Keep first 2.
+            return self._h.generate_mitigation(*args[:2])
+        except TypeError:
+            try:
+                # Some may pass only (source). Try single arg.
+                return self._h.generate_mitigation(*args[:1])
+            except Exception:
+                logging.getLogger(__name__).exception("MitigationAdapter failed")
+                return [{'recommendation': 'Erreur lors de la génération des mitigations', 'versions': []}]
 
 if __name__ == '__main__':
     app.run(debug=True)
