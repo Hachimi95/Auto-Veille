@@ -126,20 +126,15 @@ def normalize_mitigations(raw):
     # Fallback
     return [{'recommendation': str(raw).strip(), 'versions': []}] if str(raw).strip() else []
 
-UPLOAD_FOLDER = 'uploads'
-EXPORT_FOLDER = 'exports'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(EXPORT_FOLDER, exist_ok=True)
-
-def parse_date_to_ymd(date_str):
-    """Convert date string to YYYY-MM-DD if possible, else return as is."""
-    from datetime import datetime
-    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
-        try:
-            return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
-        except Exception:
-            continue
-    return date_str  # fallback
+def _unify_mitigation_key(data: dict) -> dict:
+    """Normalize any mitigation-like key to 'Mitigations'."""
+    if not isinstance(data, dict):
+        return data
+    aliases = ['Mitigation', 'mitigation', 'Mitigations', 'mitigations', 'Remédiation', 'Remédiations', 'remediation', 'remediations']
+    found_key = next((k for k in aliases if k in data), None)
+    if found_key and found_key != 'Mitigations':
+        data['Mitigations'] = data.get('Mitigations', data.pop(found_key))
+    return data
 
 def format_mitigation_for_display(mitigation_data):
     """Format mitigation data for display in textarea
@@ -738,18 +733,18 @@ def auto_bulletin():
                         data = None
 
                 if data:
-                    # Always normalize scraped/edited mitigations to a structured list first
+                    # Always unify key name first, then normalize structure
+                    data = _unify_mitigation_key(data)
                     if 'Mitigations' in data:
                         data['Mitigations'] = normalize_mitigations(data['Mitigations'])
 
                     if 'confirm' in request.form:
-                        # Final processing before PDF generation
+                        # Final processing before DOCX/PDF generation
                         data = sanitize_extracted_data(data)
                         for key in list(data.keys()):
                             if key in request.form:
                                 value = request.form.get(key)
                                 if key == 'Mitigations':
-                                    # Convert textarea back to structured list
                                     data[key] = normalize_mitigations(value)
                                 else:
                                     if isinstance(data[key], list):
@@ -757,27 +752,36 @@ def auto_bulletin():
                                     else:
                                         data[key] = value.strip()
 
-                        # ...existing code that writes tmp_json and calls generate_pdf_from_json...
+                        # Generate files
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
                             tmp_json.flush()
-                            pdf_path = generate_pdf_from_json(tmp_json.name, bulletin_id)
-                            word_path = pdf_path.replace('.pdf', '.docx')
-                            app.logger.info(f"Generated PDF: {pdf_path}")
-                            if os.path.exists(word_path):
-                                app.logger.info(f"Generated DOCX: {word_path}")
-                        generated_files = []
-                        if os.path.exists(pdf_path):
-                            generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
-                        if os.path.exists(word_path):
-                            generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
-                        os.unlink(tmp_json.name)
-                    else:
-                        # Preview mode: convert structured mitigations to display string for the textarea
-                        if 'Mitigations' in data:
-                            data['Mitigations'] = format_mitigation_for_display(data['Mitigations'])
-                        extracted_data = data
+                            pdf_path = None
+                            word_path = None
+                            try:
+                                pdf_path = generate_pdf_from_json(tmp_json.name, bulletin_id)
+                                word_path = pdf_path.replace('.pdf', '.docx')
+                                app.logger.info(f"Generated PDF: {pdf_path}")
+                            except Exception as e:
+                                app.logger.warning(f"PDF generation failed, attempting DOCX only: {e}")
+                                # Fallback to DOCX only
+                                try:
+                                    from auto_bulletin.auto_pdf import generate_docx_from_json
+                                    word_path = generate_docx_from_json(tmp_json.name, bulletin_id)
+                                    extraction_error = "PDF non généré (LibreOffice manquant). DOCX disponible au téléchargement."
+                                    app.logger.info(f"Generated DOCX (fallback): {word_path}")
+                                except Exception as e2:
+                                    app.logger.exception("DOCX generation failed")
+                                    raise
+
+                    # Prepare download list
+                    generated_files = []
+                    if pdf_path and os.path.exists(pdf_path):
+                        generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
+                    if word_path and os.path.exists(word_path):
+                        generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
+                    os.unlink(tmp_json.name)
                 else:
                     extraction_error = "Impossible d'extraire les données du bulletin."
             except Exception as e:
