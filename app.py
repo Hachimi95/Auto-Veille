@@ -47,15 +47,17 @@ def sanitize_extracted_data(data: dict) -> dict:
     return data
 
 def _parse_mitigation_details(details: dict) -> dict:
-    # Helper to keep indentation consistent and logic readable
+    """Return a normalized dict with 'recommendation' and 'versions' (list of stripped strings)."""
     parsed = {}
-    if isinstance(details, dict):
-        if 'recommendation' in details:
-            parsed['recommendation'] = details['recommendation']
-        versions = details.get('versions', [])
-        if isinstance(versions, list):
-            versions = [v.strip() if isinstance(v, str) else v for v in versions]
-        parsed['versions'] = versions
+    if not isinstance(details, dict):
+        return parsed
+    if 'recommendation' in details:
+        parsed['recommendation'] = (details.get('recommendation') or '').strip()
+    versions = details.get('versions', [])
+    if isinstance(versions, list):
+        parsed['versions'] = [v.strip() for v in versions if isinstance(v, str) and v.strip()]
+    else:
+        parsed['versions'] = []
     return parsed
 
 UPLOAD_FOLDER = 'uploads'
@@ -682,103 +684,14 @@ def auto_bulletin():
                             if key in request.form:
                                 value = request.form.get(key)
                                 if key == 'Mitigations':
-                                    import json
-                                    # Always parse mitigation as JSON if possible, else fallback to text parsing
-                                    try:
-                                        parsed = value
-                                        if isinstance(parsed, str):
-                                            parsed = json.loads(parsed)
-                                        # If parsed is a dict with recommendation/versions, wrap in a list
-                                        if isinstance(parsed, dict) and 'recommendation' in parsed and 'versions' in parsed:
-                                            # Ensure versions is a list of strings
-                                            versions = parsed['versions']
-                                            if isinstance(versions, str):
-                                                versions = [v.strip() for v in versions.split(',') if v.strip()]
-                                            elif isinstance(versions, list):
-                                                clean_versions = []
-                                                for v in versions:
-                                                    if isinstance(v, str) and ',' in v:
-                                                        clean_versions.extend([x.strip() for x in v.split(',') if x.strip()])
-                                                    else:
-                                                        clean_versions.append(v.strip() if isinstance(v, str) else str(v).strip())
-                                                versions = clean_versions
-                                           	parsed['versions'] = versions
-                                            data[key] = [parsed]
-                                        elif isinstance(parsed, list):
-                                            # Clean all dicts in the list
-                                            clean_list = []
-                                            for mit in parsed:
-                                                if isinstance(mit, dict) and 'recommendation' in mit and 'versions' in mit:
-                                                    versions = mit['versions']
-                                                    if isinstance(versions, str):
-                                                        versions = [v.strip() for v in versions.split(',') if v.strip()]
-                                                    elif isinstance(versions, list):
-                                                        clean_versions = []
-                                                        for v in versions:
-                                                            if isinstance(v, str) and ',' in v:
-                                                                clean_versions.extend([x.strip() for x in v.split(',') if x.strip()])
-                                                            else:
-                                                                clean_versions.append(v.strip() if isinstance(v, str) else str(v).strip())
-                                                        versions = clean_versions
-                                                    mit['versions'] = versions
-                                                clean_list.append(mit)
-                                            data[key] = clean_list
-                                        else:
-                                            data[key] = [{
-                                                'Aucune mitigation': {
-                                                    'recommendation': str(parsed),
-                                                    'versions': []
-                                                }
-                                            }]
-                                    except Exception:
-                                        # Parse simple text format and convert to JSON structure
-                                        lines = [line.strip() for line in value.split('\n') if line.strip()]
-                                        if lines:
-                                            recommendation = ""
-                                            versions = []
-                                            for line in lines:
-                                                if any(keyword in line.lower() for keyword in ['recommandé', 'mise à jour']) and not any(char.isdigit() for char in line):
-                                                    if not recommendation:
-                                                        recommendation = line
-                                                    else:
-                                                        versions.append(line)
-                                                else:
-                                                    versions.append(line)
-                                            if not recommendation and lines:
-                                                recommendation = lines[0]
-                                                versions = lines[1:]
-                                            product_name = "Produit"
-                                            if data.get('titre'):
-                                                title_lower = data['titre'].lower()
-                                                if 'microsoft edge' in title_lower:
-                                                    product_name = "Microsoft Edge"
-                                                elif 'fortinet' in title_lower:
-                                                    product_name = "Fortinet"
-                                                elif 'chrome' in title_lower:
-                                                    product_name = "Google Chrome"
-                                                elif 'mozilla' in title_lower:
-                                                    product_name = "Mozilla"
-                                                elif 'cisco' in title_lower:
-                                                    product_name = "Cisco"
-                                                elif 'veeam' in title_lower:
-                                                    product_name = "Veeam"
-                                            data[key] = [{
-                                                product_name: {
-                                                    'recommendation': recommendation,
-                                                    'versions': versions
-                                                }
-                                            }]
-                                        else:
-                                            data[key] = [{
-                                                'Aucune mitigation': {
-                                                    'recommendation': 'Aucune mitigation fournie',
-                                                    'versions': []
-                                                }
-                                            }]
-                                elif isinstance(data[key], list):
-                                    data[key] = [v.strip() for v in value.split('\n') if v.strip()]
+                                    data[key] = normalize_mitigations(value)
                                 else:
-                                    data[key] = value
+                                    # Default behavior: replace with form value (handle multiline lists)
+                                    if isinstance(data[key], list):
+                                        # Split on newlines if user gave multiline input
+                                        data[key] = [l.strip() for l in value.split('\n') if l.strip()]
+                                    else:
+                                        data[key] = value.strip()
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
@@ -840,6 +753,95 @@ def api_kpi_data(kpi_type):
             'success': True,
             'data': data,
             'client': client,
+            'filters': {
+                'month': month
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/kpi/global_overview')
+def api_global_overview():
+    """API endpoint for global KPI overview across all clients"""
+    month = request.args.get('month')
+    
+    try:
+        clients = db.get_client_names()
+        global_data = {
+            'clients_summary': {},
+            'total_counts': {
+                'status': {},
+                'sla': {}
+            }
+        }
+        
+        # Get global totals directly (not per client to avoid double counting)
+        global_open_vs_closed = db.get_open_vs_closed(None, month)
+        global_sla = db.get_sla_compliance(None, month)
+        
+        # Store global totals
+        global_data['total_counts']['status'] = global_open_vs_closed
+        global_data['total_counts']['sla'] = global_sla
+        
+        # Also get individual client data for reference
+        for client in clients:
+            client_data = db.get_kpi_summary(client, month)
+            global_data['clients_summary'][client] = client_data
+        
+        return jsonify({
+            'success': True,
+            'data': global_data,
+            'total_clients': len(clients),
+            'filters': {
+                'month': month
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/auto_patch', methods=['GET', 'POST'])
+def auto_patch():
+    message = None
+    error = None
+    if request.method == 'POST':
+        try:
+            from auto_patch.script import process_uploaded_excel
+            # Get uploaded file
+            file = request.files.get('excel_file')
+            if not file:
+                error = "Veuillez sélectionner un fichier Excel."
+                return render_template('auto_patch.html', error=error, message=message)
+            
+            # Validate file extension
+            if not file.filename.lower().endswith(('.xlsx', '.xls')):
+                error = "Veuillez sélectionner un fichier Excel valide (.xlsx ou .xls)."
+                return render_template('auto_patch.html', error=error, message=message)
+            
+            # Get sheet name (optional)
+            sheet_name = request.form.get('sheet_name') or None
+            
+            # Process file using module
+            output_path, output_filename, cleanup_fn = process_uploaded_excel(file, sheet_name)
+            
+            response = send_file(
+                output_path,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=output_filename
+            )
+            response.call_on_close(cleanup_fn)
+            return response
+        except Exception as e:
+            error = f"Erreur lors du traitement : {str(e)}"
+    
+    return render_template('auto_patch.html', error=error, message=message)
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
             'filters': {
                 'month': month
             }
