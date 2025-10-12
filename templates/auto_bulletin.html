@@ -63,23 +63,15 @@
     </form>
   {% endif %}
 
-  {% if generated_files and generated_files|length > 0 %}
-  <div class="mt-4">
-      <h4>📁 Fichiers générés</h4>
-      <div class="d-flex gap-3">
-          {% for file in generated_files %}
-          <a href="{{ file.url }}" class="btn btn-outline-primary d-flex align-items-center" target="_blank">
-              {% if file.type == 'PDF' %}
-              <img src="{{ url_for('static', filename='pdf.png') }}" alt="PDF" style="height:20px;margin-right:8px;">
-              {% else %}
-              <img src="{{ url_for('static', filename='doc.png') }}" alt="DOCX" style="height:20px;margin-right:8px;">
-              {% endif %}
-              Télécharger {{ file.type }}
-          </a>
-          {% endfor %}
-      </div>
-      <small class="text-muted d-block mt-2">Cliquez sur les boutons ci-dessus pour télécharger les fichiers générés.</small>
-  </div>
+  {% if generated_files %}
+    <div style="text-align: center; margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 32px;">
+      <a href="?download={{ generated_files.pdf }}" title="Download PDF">
+        <img src="/static/pdf.png" alt="Download PDF" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+      </a>
+      <a href="?download={{ generated_files.word }}" title="Download Word">
+        <img src="/static/doc.png" alt="Download Word" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+      </a>
+    </div>
   {% endif %}
 </section>
 {% endblock %}
