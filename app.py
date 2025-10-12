@@ -716,6 +716,7 @@ def download_auto_bulletin_file(filename):
     base_dir = os.path.join(os.path.dirname(__file__), 'auto_bulletin')
     file_path = os.path.join(base_dir, safe_name)
     if not os.path.exists(file_path):
+        app.logger.warning(f"Download requested but not found: {file_path}")
         return f"File not found: {safe_name}", 404
     ext = os.path.splitext(safe_name)[1].lower()
     if ext == '.pdf':
@@ -724,6 +725,7 @@ def download_auto_bulletin_file(filename):
         mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     else:
         mimetype = 'application/octet-stream'
+    app.logger.info(f"Downloading file: {file_path}")
     return send_file(file_path, mimetype=mimetype, as_attachment=True, download_name=safe_name)
 
 @app.route('/auto_bulletin', methods=['GET', 'POST'])
@@ -865,6 +867,31 @@ def auto_bulletin():
                                 'type': 'Word',
                                 'url': url_for('download_auto_bulletin_file', filename=base)
                             })
+                    else:
+                        # Preview mode: show extracted data in the form
+                        extracted_data = data
+                        # Normalize mitigation for display
+                        if 'Mitigations' in data:
+                            data['Mitigations'] = format_mitigation_for_display(data['Mitigations'])
+                        # Special handling for CVEs ID - join with commas for display
+                        if 'CVEs ID' in data and isinstance(data['CVEs ID'], list):
+                            data['CVEs ID'] = ', '.join(data['CVEs ID'])
+                        # Products affected - join with commas for display
+                        if 'Produits affectés' in data and isinstance(data['Produits affectés'], list):
+                            data['Produits affectés'] = ', '.join(data['Produits affectés'])
+                        # References - join with commas for display
+                        if 'Références' in data and isinstance(data['Références'], list):
+                            data['Références'] = ', '.join(data['Références'])
+
+                        # Remove URL field from preview
+                        data.pop('url', None)
+
+                        # Rebuild the form with extracted data
+                        return render_template('auto_bulletin.html',
+                                               extraction_error=extraction_error,
+                                               extracted_data=data,
+                                               generated_files=generated_files)
+
                 else:
                     extraction_error = "Impossible d'extraire les données du bulletin."
             except Exception as e:
