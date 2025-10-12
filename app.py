@@ -215,9 +215,6 @@ def format_mitigation_for_display(mitigation_data):
     return '\n'.join([ln for ln in formatted_lines if ln and 'versions"' not in ln.lower() and '"versions"' not in ln.lower()])
 
 
-from auto_bulletin.utils import normalize_mitigations
-
-
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -1083,4 +1080,5 @@ class MitigationAdapter:
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
