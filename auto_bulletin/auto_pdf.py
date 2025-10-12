@@ -206,15 +206,15 @@ def replace_placeholders_in_paragraph(paragraph, placeholders, doc=None):
                 paragraph.style = paragraph_style
 
             elif placeholder == '[Mitigations]':
-            # Get the table cell that contains this paragraph
-            parent_cell = None
-            if doc:  # Add this check
-                for table in doc.tables:
-                    for row in table.rows:
-                        for cell in row.cells:
-                            if paragraph in cell.paragraphs:
-                                parent_cell = cell
-                                break
+                # Get the table cell that contains this paragraph
+                parent_cell = None
+                if doc:
+                    for table in doc.tables:
+                        for row in table.rows:
+                            for cell in row.cells:
+                                if paragraph in cell.paragraphs:
+                                    parent_cell = cell
+                                    break
                 
                 if parent_cell:
                     # Clear all paragraphs in the cell
