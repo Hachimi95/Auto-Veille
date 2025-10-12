@@ -63,16 +63,24 @@
     </form>
   {% endif %}
 
-  {% if generated_files %}
-    <div style="text-align: center; margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 32px;">
-      <a href="?download={{ generated_files.pdf }}" title="Download PDF">
-        <img src="/static/pdf.png" alt="Download PDF" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
-      </a>
-      <a href="?download={{ generated_files.word }}" title="Download Word">
-        <img src="/static/doc.png" alt="Download Word" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
-      </a>
+{% if generated_files and generated_files|length > 0 %}
+  <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+    <h4 style="margin-bottom: 1rem;">📁 Fichiers générés</h4>
+    <div style="display: flex; justify-content: center; gap: 32px;">
+      {% for file in generated_files %}
+        <a href="{{ file.url }}" title="Télécharger {{ file.type }}" target="_blank">
+          {% if file.type == 'PDF' %}
+            <img src="{{ url_for('static', filename='pdf.png') }}" alt="Download PDF" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+          {% else %}
+            <img src="{{ url_for('static', filename='doc.png') }}" alt="Download Word" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+          {% endif %}
+        </a>
+      {% endfor %}
     </div>
-  {% endif %}
+    <small class="text-muted" style="display: block; margin-top: 0.75rem;">Cliquez sur les icônes ci-dessus pour télécharger les fichiers générés.</small>
+  </div>
+{% endif %}
+
 </section>
 {% endblock %}
 {% block scripts %}
