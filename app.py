@@ -710,23 +710,44 @@ def delete_product(product_id):
     return '', 204
 
 # Serve generated PDF/DOCX from auto_bulletin folder
-@app.get('/auto_bulletin/download/<path:filename>')
+@app.route('/auto_bulletin/download/<path:filename>')
 def download_auto_bulletin_file(filename):
-    safe_name = os.path.basename(filename)  # prevent path traversal
-    base_dir = os.path.join(os.path.dirname(__file__), 'auto_bulletin')
-    file_path = os.path.join(base_dir, safe_name)
-    if not os.path.exists(file_path):
-        app.logger.warning(f"Download requested but not found: {file_path}")
-        return f"File not found: {safe_name}", 404
-    ext = os.path.splitext(safe_name)[1].lower()
-    if ext == '.pdf':
-        mimetype = 'application/pdf'
-    elif ext == '.docx':
-        mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    else:
-        mimetype = 'application/octet-stream'
-    app.logger.info(f"Downloading file: {file_path}")
-    return send_file(file_path, mimetype=mimetype, as_attachment=True, download_name=safe_name)
+    """Download generated PDF/DOCX files from auto_bulletin folder"""
+    try:
+        # Sanitize filename to prevent path traversal
+        safe_name = os.path.basename(filename)
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'auto_bulletin'))
+        file_path = os.path.join(base_dir, safe_name)
+        
+        app.logger.info(f"Download requested: {safe_name}")
+        app.logger.info(f"Looking for file at: {file_path}")
+        
+        if not os.path.exists(file_path):
+            app.logger.error(f"File not found: {file_path}")
+            return f"File not found: {safe_name}", 404
+        
+        # Determine mimetype based on extension
+        ext = os.path.splitext(safe_name)[1].lower()
+        if ext == '.pdf':
+            mimetype = 'application/pdf'
+        elif ext == '.docx':
+            mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        else:
+            mimetype = 'application/octet-stream'
+        
+        app.logger.info(f"Serving file: {file_path} with mimetype: {mimetype}")
+        
+        # Send file with proper headers for download
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=safe_name
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error downloading file {filename}: {str(e)}")
+        return f"Error downloading file: {str(e)}", 500
 
 @app.route('/auto_bulletin', methods=['GET', 'POST'])
 def auto_bulletin():
@@ -854,19 +875,24 @@ def auto_bulletin():
                         # Prepare download list (inside confirm)
                         generated_files = []
                         if pdf_path and os.path.exists(pdf_path):
-                            base = os.path.basename(pdf_path)
+                            base_name = os.path.basename(pdf_path)
+                            download_url = url_for('download_auto_bulletin_file', filename=base_name)
                             generated_files.append({
-                                'name': base,
+                                'name': base_name,
                                 'type': 'PDF',
-                                'url': url_for('download_auto_bulletin_file', filename=base)
+                                'url': download_url
                             })
+                            app.logger.info(f"PDF ready for download: {base_name} -> {download_url}")
+                            
                         if word_path and os.path.exists(word_path):
-                            base = os.path.basename(word_path)
+                            base_name = os.path.basename(word_path)
+                            download_url = url_for('download_auto_bulletin_file', filename=base_name)
                             generated_files.append({
-                                'name': base,
+                                'name': base_name,
                                 'type': 'Word',
-                                'url': url_for('download_auto_bulletin_file', filename=base)
+                                'url': download_url
                             })
+                            app.logger.info(f"DOCX ready for download: {base_name} -> {download_url}")
                     else:
                         # Preview mode: show extracted data in the form
                         extracted_data = data

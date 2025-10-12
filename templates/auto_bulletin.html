@@ -63,20 +63,24 @@
     </form>
   {% endif %}
 
-  {% if generated_files and generated_files|length %}
-  <div class="generated-files">
-    {% for file in generated_files %}
-      <a href="{{ file.url }}" class="btn btn-link" download>
-        {% if file.type == 'PDF' %}
-          <img src="{{ url_for('static', filename='pdf.png') }}" alt="PDF" style="height:18px;vertical-align:middle;margin-right:6px;">
-        {% else %}
-          <img src="{{ url_for('static', filename='doc.png') }}" alt="DOCX" style="height:18px;vertical-align:middle;margin-right:6px;">
-        {% endif %}
-        {{ file.name }}
-      </a>
-    {% endfor %}
+  {% if generated_files and generated_files|length > 0 %}
+  <div class="mt-4">
+      <h4>📁 Fichiers générés</h4>
+      <div class="d-flex gap-3">
+          {% for file in generated_files %}
+          <a href="{{ file.url }}" class="btn btn-outline-primary d-flex align-items-center" target="_blank">
+              {% if file.type == 'PDF' %}
+              <img src="{{ url_for('static', filename='pdf.png') }}" alt="PDF" style="height:20px;margin-right:8px;">
+              {% else %}
+              <img src="{{ url_for('static', filename='doc.png') }}" alt="DOCX" style="height:20px;margin-right:8px;">
+              {% endif %}
+              Télécharger {{ file.type }}
+          </a>
+          {% endfor %}
+      </div>
+      <small class="text-muted d-block mt-2">Cliquez sur les boutons ci-dessus pour télécharger les fichiers générés.</small>
   </div>
-{% endif %}
+  {% endif %}
 </section>
 {% endblock %}
 {% block scripts %}
