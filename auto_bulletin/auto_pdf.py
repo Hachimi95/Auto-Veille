@@ -211,7 +211,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 
                 paragraph.clear()
                 if isinstance(value, list):
-                    for mitigation in value:
+                    for mitigation_idx, mitigation in enumerate(value):
                         # Support flat dict shape: {'recommendation': '...', 'versions': [...]}
                         details = None
                         if isinstance(mitigation, dict) and ('recommendation' in mitigation or 'versions' in mitigation):
@@ -242,26 +242,38 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                             rec_run.font.bold = False
                             rec_run.font.name = "Arial"
                             rec_run.font.size = Pt(10)
+                            # Add newline after recommendation (before versions list)
                             paragraph.add_run('\n')
                         
                         # Add versions bullets
                         versions = details.get('versions', []) or []
                         for i, version in enumerate(versions):
+                            # Add bullet symbol with indentation
                             bullet_run = paragraph.add_run("     " + chr(216) + " ")
                             bullet_run.font.name = "Wingdings"
                             bullet_run.font.size = Pt(11)
+                            
+                            # Split version text to find and bold version numbers
                             parts = split_version_text(str(version))
                             for text_part, should_bold in parts:
                                 run = paragraph.add_run(text_part)
                                 run.font.name = "Arial"
                                 run.font.size = Pt(10)
                                 run.font.bold = should_bold
-                            if i < len(versions) - 1:
-                                paragraph.add_run('\n')
-                        
-                        paragraph.paragraph_format.left_indent = Pt(20)
-                        paragraph.paragraph_format.line_spacing = 2 
                             
+                            # Add newline after each version
+                            paragraph.add_run('\n')
+                        
+                        # Add extra space between different mitigations (if multiple)
+                        if mitigation_idx < len(value) - 1:
+                            paragraph.add_run('\n')
+                    
+                    # Set paragraph formatting
+                    paragraph.paragraph_format.left_indent = Pt(20)
+                    paragraph.paragraph_format.line_spacing = 1.3
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(4)
+                        
                 # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
                 paragraph.style = paragraph_style
