@@ -715,6 +715,25 @@ def auto_bulletin():
     extracted_data = None
     generated_files = []
 
+    # Support direct download via query param: /auto_bulletin?download=<filename>
+    if request.method == 'GET':
+        dl_name = request.args.get('download')
+        if dl_name:
+            safe_name = os.path.basename(dl_name)  # prevent path traversal
+            base_dir = os.path.join(os.path.dirname(__file__), 'auto_bulletin')
+            file_path = os.path.join(base_dir, safe_name)
+            if os.path.exists(file_path):
+                ext = os.path.splitext(safe_name)[1].lower()
+                if ext == '.pdf':
+                    mimetype = 'application/pdf'
+                elif ext == '.docx':
+                    mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                else:
+                    mimetype = 'application/octet-stream'
+                return send_file(file_path, mimetype=mimetype, as_attachment=True, download_name=safe_name)
+            else:
+                return f"File not found: {safe_name}", 404
+
     if request.method == 'POST':
         bulletin_id = request.form.get('bulletin_id')
         url = request.form.get('url')
@@ -816,9 +835,11 @@ def auto_bulletin():
                         # Prepare download list (inside confirm)
                         generated_files = []
                         if pdf_path and os.path.exists(pdf_path):
-                            generated_files.append({'name': os.path.basename(pdf_path), 'path': pdf_path, 'type': 'PDF'})
+                            base = os.path.basename(pdf_path)
+                            generated_files.append({'name': base, 'filename': base, 'path': pdf_path, 'type': 'PDF'})
                         if word_path and os.path.exists(word_path):
-                            generated_files.append({'name': os.path.basename(word_path), 'path': word_path, 'type': 'Word'})
+                            base = os.path.basename(word_path)
+                            generated_files.append({'name': base, 'filename': base, 'path': word_path, 'type': 'Word'})
                     else:
                         # Preview: convert structured list to a readable textarea string
                         if 'Mitigations' in data:
