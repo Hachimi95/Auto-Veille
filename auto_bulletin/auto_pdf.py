@@ -12,6 +12,9 @@ from docx.shared import RGBColor
 import subprocess
 import platform
 import shutil
+import tempfile  # added
+
+__all__ = ["generate_pdf_from_json", "generate_docx_from_json"]  # ensure import works
 
 
 def convert_date_format(french_date):
@@ -209,53 +212,59 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.clear()
                 if isinstance(value, list):
                     for mitigation in value:
-                        for key, details in mitigation.items():
-                            # Fallback: if details is not a dict, treat as string
-                            if not isinstance(details, dict):
-                                rec_run = paragraph.add_run(str(details))
-                                rec_run.font.bold = False
-                                rec_run.font.name = "Arial"
-                                rec_run.font.size = Pt(10)
+                        # Support flat dict shape: {'recommendation': '...', 'versions': [...]}
+                        details = None
+                        if isinstance(mitigation, dict) and ('recommendation' in mitigation or 'versions' in mitigation):
+                            details = mitigation
+                        elif isinstance(mitigation, dict) and len(mitigation) == 1:
+                            # Nested product shape: {'Product': {'recommendation':..., 'versions':[...]} }
+                            details = next(iter(mitigation.values()))
+                        elif isinstance(mitigation, str):
+                            # Simple string mitigation
+                            details = {'recommendation': mitigation, 'versions': []}
+                        else:
+                            # Unhandled type, render as string line
+                            rec_run = paragraph.add_run(str(mitigation))
+                            rec_run.font.bold = False
+                            rec_run.font.name = "Arial"
+                            rec_run.font.size = Pt(10)
+                            paragraph.add_run('\n')
+                            continue
+
+                        # Ensure dict structure
+                        if not isinstance(details, dict):
+                            details = {'recommendation': str(details), 'versions': []}
+
+                        # Add recommendation if present
+                        rec_text = details.get('recommendation') or ""
+                        if rec_text:
+                            rec_run = paragraph.add_run(rec_text)
+                            rec_run.font.bold = False
+                            rec_run.font.name = "Arial"
+                            rec_run.font.size = Pt(10)
+                            paragraph.add_run('\n')
+                        
+                        # Add versions bullets
+                        versions = details.get('versions', []) or []
+                        for i, version in enumerate(versions):
+                            bullet_run = paragraph.add_run("     " + chr(216) + " ")
+                            bullet_run.font.name = "Wingdings"
+                            bullet_run.font.size = Pt(11)
+                            parts = split_version_text(str(version))
+                            for text_part, should_bold in parts:
+                                run = paragraph.add_run(text_part)
+                                run.font.name = "Arial"
+                                run.font.size = Pt(10)
+                                run.font.bold = should_bold
+                            if i < len(versions) - 1:
                                 paragraph.add_run('\n')
-                                continue
-                            # If recommendation exists, add it with spacing
-                            if 'recommendation' in details:
-                                # Add recommendation text
-                                rec_run = paragraph.add_run(details['recommendation'])
-                                rec_run.font.bold = False
-                                rec_run.font.name = "Arial"
-                                rec_run.font.size = Pt(10)
-                                
-                                # Add line break after recommendation
-                                paragraph.add_run('\n')
+                        
+                        paragraph.paragraph_format.left_indent = Pt(20)
+                        paragraph.paragraph_format.line_spacing = 2 
                             
-                            # Add versions with spacing between them
-                            versions = details.get('versions', [])
-                            for i, version in enumerate(versions):
-                                # Add bullet and version
-                                bullet_run = paragraph.add_run("     " + chr(216) + " ")
-                                bullet_run.font.name = "Wingdings"
-                                bullet_run.font.size = Pt(11)
-                                
-                                # Process version text with splitting
-                                parts = split_version_text(version)
-                                for text_part, should_bold in parts:
-                                    run = paragraph.add_run(text_part)
-                                    run.font.name = "Arial"
-                                    run.font.size = Pt(10)
-                                    run.font.bold = should_bold
-                                
-                                # Add line break after each version (except the last one)
-                                if i < len(versions) - 1:
-                                    paragraph.add_run('\n')
-                            
-                            # Set paragraph formatting
-                            paragraph.paragraph_format.left_indent = Pt(20)
-                            paragraph.paragraph_format.line_spacing = 2 
-                            
-                        # Restore paragraph properties
-                        paragraph.alignment = paragraph_alignment
-                        paragraph.style = paragraph_style
+                # Restore paragraph properties
+                paragraph.alignment = paragraph_alignment
+                paragraph.style = paragraph_style
 
             else:
                 # For other placeholders, replace directly and preserve formatting
@@ -304,136 +313,90 @@ def fix_table_properties(doc):
 
 
 def check_libreoffice_available():
-    """Check if LibreOffice is available on the system"""
-    libreoffice_commands = [
-        'libreoffice',
-        'soffice',
-        '/usr/bin/libreoffice',
-        '/usr/bin/soffice',
-        '/snap/bin/libreoffice',
-        '/opt/libreoffice/program/soffice',
+    """Return executable path for LibreOffice/soffice if available, else None."""
+    # Prefer explicit env var
+    env = os.getenv("SOFFICE_PATH")
+    candidates = [env] if env else []
+    # Common binary names
+    for name in ("soffice", "libreoffice", "lowriter"):
+        p = shutil.which(name)
+        if p:
+            candidates.append(p)
+    # Common absolute locations
+    candidates += [
+        "/usr/bin/soffice",
+        "/usr/bin/libreoffice",
+        "/usr/local/bin/soffice",
+        "/usr/local/bin/libreoffice",
+        "/usr/lib/libreoffice/program/soffice",
+        "/snap/bin/libreoffice",
+        "/opt/libreoffice/program/soffice",
     ]
-    
-    for cmd in libreoffice_commands:
-        if shutil.which(cmd):
-            return cmd
-    
+    seen = set()
+    for c in list(candidates):
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        if os.path.exists(c) and os.access(c, os.X_OK):
+            return c
     return None
 
 
 def convert_docx_to_pdf_libreoffice(docx_path):
     """
     Convert DOCX to PDF using LibreOffice in headless mode.
-    
-    Args:
-        docx_path: Path to the DOCX file
-        
-    Returns:
-        Path to the generated PDF file
-        
-    Raises:
-        RuntimeError: If LibreOffice is not installed or conversion fails
     """
-    libreoffice_cmd = check_libreoffice_available()
-    
-    if not libreoffice_cmd:
+    soffice = check_libreoffice_available()
+    if not soffice:
         raise RuntimeError(
-            "LibreOffice n'est pas installé. Installez-le avec:\n"
-            "  sudo apt-get update\n"
-            "  sudo apt-get install -y libreoffice\n"
-            "Puis relancez l'application."
+            "LibreOffice (soffice) not found for DOCX->PDF conversion on Linux.\n"
+            "Install it, e.g.:\n"
+            "  sudo apt-get update && sudo apt-get install -y libreoffice-core libreoffice-writer fonts-dejavu\n"
+            "Then retry."
         )
-    
-    # Get output directory
     output_dir = os.path.dirname(docx_path)
-    
-    # Convert to PDF using LibreOffice
+    base = os.path.splitext(os.path.basename(docx_path))[0]
     try:
-        result = subprocess.run(
-            [
-                libreoffice_cmd,
-                '--headless',
-                '--convert-to', 'pdf',
-                '--outdir', output_dir,
-                docx_path
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            check=True
+        proc = subprocess.run(
+            [soffice, "--headless", "--convert-to", "pdf", "--outdir", output_dir, docx_path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True, timeout=120
         )
-        
-        # Calculate expected PDF path
-        pdf_path = docx_path.replace('.docx', '.pdf')
-        
-        if os.path.exists(pdf_path):
-            return pdf_path
-        else:
-            raise RuntimeError(f"Conversion réussie mais PDF introuvable: {pdf_path}")
-            
+        if proc.stdout:
+            print(f"[auto_pdf] soffice stdout: {proc.stdout.strip()}")
+        if proc.stderr:
+            print(f"[auto_pdf] soffice stderr: {proc.stderr.strip()}")
     except subprocess.TimeoutExpired:
-        raise RuntimeError("La conversion PDF a expiré (timeout de 60s)")
+        raise RuntimeError("La conversion PDF a expiré (timeout)")
     except subprocess.CalledProcessError as e:
-        error_msg = e.stderr if e.stderr else str(e)
-        raise RuntimeError(f"Échec de la conversion PDF: {error_msg}")
-
-
-def convert_docx_to_pdf_windows(docx_path):
-    """
-    Convert DOCX to PDF using Windows COM automation (Microsoft Word).
-    Only works on Windows with Microsoft Word installed.
-    
-    Args:
-        docx_path: Path to the DOCX file
-        
-    Returns:
-        Path to the generated PDF file
-    """
-    try:
-        import win32com.client
-        import pythoncom
-    except ImportError:
-        raise RuntimeError(
-            "pywin32 n'est pas installé. Sur Windows, installez-le avec:\n"
-            "  pip install pywin32"
-        )
-    
-    pythoncom.CoInitialize()
-    try:
-        word = win32com.client.Dispatch("Word.Application")
-        pdf_path = docx_path.replace('.docx', '.pdf')
-        word_doc = word.Documents.Open(os.path.abspath(docx_path))
-        word_doc.SaveAs(os.path.abspath(pdf_path), FileFormat=17)  # 17 = PDF
-        word_doc.Close()
-        word.Quit()
-        return pdf_path
-    finally:
-        pythoncom.CoUninitialize()
+        raise RuntimeError(f"Échec de la conversion PDF: {e.stderr or e.stdout or e}")
+    # Resolve PDF path robustly
+    expected_pdf = os.path.join(output_dir, f"{base}.pdf")
+    if os.path.exists(expected_pdf):
+        return expected_pdf
+    # Fallback: find any PDF produced for this base
+    for f in os.listdir(output_dir):
+        if f.lower().endswith(".pdf") and f.startswith(base):
+            return os.path.join(output_dir, f)
+    raise RuntimeError(f"Conversion réussie mais PDF introuvable pour: {base}")
 
 
 def generate_docx_from_json(json_path, bulletin_id):
     """
     Generate a DOCX file from JSON data and bulletin ID.
-    This function is exported and can be used as a fallback when PDF generation fails.
-    
-    Args:
-        json_path: Path to JSON file with bulletin data
-        bulletin_id: Bulletin identifier
-        
-    Returns:
-        Path to generated DOCX file
     """
     try:
-        # Load JSON data
         with open(json_path, "r", encoding="utf-8") as file:
             advisory_data = json.load(file)
-
-        # Ensure advisory_data is a dictionary
         if not isinstance(advisory_data, dict):
             raise ValueError("Loaded JSON data is not a dictionary.")
-
-        # Load Word template
-        doc = Document(os.path.join("auto_bulletin", "template5.docx"))
+        # Use absolute template path to avoid CWD issues under systemd
+        tpl_dir = os.path.dirname(os.path.abspath(__file__))
+        tpl_path = os.path.join(tpl_dir, "template5.docx")
+        if os.path.exists(tpl_path):
+            doc = Document(tpl_path)
+        else:
+            # Fallback to a blank document if template is missing
+            doc = Document()
 
         # Date formatting
         date_value = advisory_data.get("Date", "")
@@ -445,11 +408,13 @@ def generate_docx_from_json(json_path, bulletin_id):
                 "mai": "05", "juin": "06", "juillet": "07", "août": "08",
                 "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"
             }
-            day = date_parts[0]
-            month = months.get(date_parts[1].lower(), "00")
-            year = date_parts[2]
-            
-            formatted_date = f"{day}{month}{year}"
+            if len(date_parts) >= 3:
+                day = date_parts[0]
+                month = months.get(date_parts[1].lower(), "00")
+                year = date_parts[2]
+                formatted_date = f"{day}{month}{year}"
+            else:
+                formatted_date = datetime.now().strftime("%d%m%Y")
         else:
             formatted_date = datetime.now().strftime("%d%m%Y")
 
@@ -482,68 +447,62 @@ def generate_docx_from_json(json_path, bulletin_id):
             "[risques]": "\n".join([risque + "\n-" for risque in advisory_data.get("risques", [])])[:-2]
         }
 
-        # Fix table properties
+        # Fix table props, then replace
         fix_table_properties(doc)
-
-        # Apply replacements to document paragraphs
         for paragraph in doc.paragraphs:
             replace_placeholders_in_paragraph(paragraph, placeholders)
-
-        # Apply replacements to table paragraphs
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
                         replace_placeholders_in_paragraph(paragraph, placeholders)
 
-        # Save the Word document
-        docx_path = os.path.join("auto_bulletin", f"{base_filename_display}.docx")
+        out_dir = os.path.dirname(os.path.abspath(__file__))
+        docx_path = os.path.join(out_dir, f"{base_filename_display}.docx")
         doc.save(docx_path)
-
         return docx_path
 
     except Exception as e:
         raise Exception(f"Error generating DOCX: {e}")
 
 
+def _linux_generate_pdf(advisory_data: dict, base_filename_display: str) -> str:
+    """
+    Compatibility path: generate DOCX then convert to PDF on Linux using LibreOffice.
+    """
+    # Write advisory to temp json and reuse generate_docx_from_json
+    with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp:
+        json.dump(advisory_data, tmp, ensure_ascii=False)
+        tmp.flush()
+        tmp_path = tmp.name
+    try:
+        # Use a synthetic bulletin_id when not provided in older calls (suffix of base)
+        bulletin_id = base_filename_display.split(' - ')[0] if ' - ' in base_filename_display else base_filename_display
+        docx_path = generate_docx_from_json(tmp_path, bulletin_id)
+        return convert_docx_to_pdf_libreoffice(docx_path)
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
+
 def generate_pdf_from_json(json_path, bulletin_id):
     """
     Generate a PDF from JSON data. Works on both Windows and Linux.
-    
-    On Linux: Uses LibreOffice for DOCX to PDF conversion
-    On Windows: Uses Microsoft Word COM automation (if available) or LibreOffice
-    
-    Args:
-        json_path: Path to JSON file with bulletin data
-        bulletin_id: Bulletin identifier
-        
-    Returns:
-        Path to generated PDF file
-        
-    Raises:
-        Exception: If PDF generation fails (caller should handle and fallback to DOCX)
     """
     # First generate the DOCX
     docx_path = generate_docx_from_json(json_path, bulletin_id)
-    
-    # Detect platform and choose conversion method
     system = platform.system()
-    
     try:
         if system == 'Windows':
-            # Try Windows COM first, fall back to LibreOffice
             try:
-                pdf_path = convert_docx_to_pdf_windows(docx_path)
-                return pdf_path
+                return convert_docx_to_pdf_windows(docx_path)
             except Exception as win_error:
                 print(f"⚠️ Windows COM conversion failed, trying LibreOffice: {win_error}")
-                pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
-                return pdf_path
+                return convert_docx_to_pdf_libreoffice(docx_path)
         else:
-            # Linux/macOS: Use LibreOffice
-            pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
-            return pdf_path
-            
+            return convert_docx_to_pdf_libreoffice(docx_path)
     except Exception as e:
-        # Don't delete the DOCX - it's the fallback
-        raise Exception(f"Erreur lors de la génération du PDF: {e}")
+        # Keep DOCX for fallback; raise wrapped for caller
+        raise Exception(f"Error generating PDF: {e}")
