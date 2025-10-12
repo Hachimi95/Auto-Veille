@@ -215,15 +215,15 @@ def replace_placeholders_in_paragraph(paragraph, placeholders, doc=None):
                                 if paragraph in cell.paragraphs:
                                     parent_cell = cell
                                     break
+                            if parent_cell:
+                                break
+                        if parent_cell:
+                            break
                 
                 if parent_cell:
-                    # Clear all paragraphs in the cell
-                    for p in parent_cell.paragraphs:
-                        p.clear()
-                    
-                    # Remove extra paragraphs, keep only the first one
-                    while len(parent_cell.paragraphs) > 1:
-                        parent_cell._element.remove(parent_cell.paragraphs[-1]._element)
+                    # CRITICAL: Remove ALL existing paragraphs first
+                    for p in list(parent_cell.paragraphs):
+                        p._element.getparent().remove(p._element)
                     
                     if isinstance(value, list):
                         for mitigation_idx, mitigation in enumerate(value):
@@ -248,13 +248,14 @@ def replace_placeholders_in_paragraph(paragraph, placeholders, doc=None):
                             # Add recommendation paragraph
                             rec_text = details.get('recommendation') or ""
                             if rec_text:
-                                p_rec = parent_cell.paragraphs[0] if mitigation_idx == 0 else parent_cell.add_paragraph()
+                                p_rec = parent_cell.add_paragraph()
                                 rec_run = p_rec.add_run(rec_text)
                                 rec_run.font.bold = False
                                 rec_run.font.name = "Arial"
                                 rec_run.font.size = Pt(10)
                                 p_rec.paragraph_format.space_after = Pt(2)
                                 p_rec.paragraph_format.space_before = Pt(0)
+                                p_rec.paragraph_format.line_spacing = 1.0
                             
                             # Add each version as a separate paragraph
                             versions = details.get('versions', []) or []
@@ -276,7 +277,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders, doc=None):
                                 
                                 # Format paragraph
                                 p_ver.paragraph_format.left_indent = Pt(20)
-                                p_ver.paragraph_format.space_after = Pt(2)
+                                p_ver.paragraph_format.space_after = Pt(1)
                                 p_ver.paragraph_format.space_before = Pt(0)
                                 p_ver.paragraph_format.line_spacing = 1.0
                             
@@ -284,7 +285,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders, doc=None):
                             if mitigation_idx < len(value) - 1:
                                 parent_cell.add_paragraph()
                 else:
-                    # Fallback for non-table paragraphs (original logic)
+                    # Fallback: paragraph not in table
                     paragraph.clear()
                     if isinstance(value, list):
                         for mitigation in value:
