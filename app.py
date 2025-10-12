@@ -762,6 +762,10 @@ def auto_bulletin():
             safe_name = os.path.basename(dl_name)  # prevent path traversal
             base_dir = os.path.join(os.path.dirname(__file__), 'auto_bulletin')
             file_path = os.path.join(base_dir, safe_name)
+            
+            app.logger.info(f"Download requested: {safe_name}")
+            app.logger.info(f"Looking for file at: {file_path}")
+            
             if os.path.exists(file_path):
                 ext = os.path.splitext(safe_name)[1].lower()
                 if ext == '.pdf':
@@ -770,14 +774,23 @@ def auto_bulletin():
                     mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 else:
                     mimetype = 'application/octet-stream'
-                return send_file(file_path, mimetype=mimetype, as_attachment=True, download_name=safe_name)
+                
+                app.logger.info(f"Serving file: {file_path} with mimetype: {mimetype}")
+                
+                return send_file(
+                    file_path,
+                    mimetype=mimetype,
+                    as_attachment=True,
+                    download_name=safe_name
+                )
             else:
+                app.logger.error(f"File not found: {file_path}")
                 return f"File not found: {safe_name}", 404
 
     if request.method == 'POST':
         bulletin_id = request.form.get('bulletin_id')
         url = request.form.get('url')
-        data = None  # initialize to avoid UnboundLocalError on exceptional paths
+        data = None
 
         if bulletin_id and url:
             try:
@@ -800,7 +813,6 @@ def auto_bulletin():
                     }
                 else:
                     # User is extracting data - perform scraping
-                    # Wrap handler to match scraper’s expected method signature
                     mitigation_handler = MitigationAdapter(MitigationHandler(cohere_api_key))
                     description_handler = DescriptionHandler(cohere_api_key)
                     if "dgssi" in url.lower():
@@ -814,10 +826,8 @@ def auto_bulletin():
                         data = None
 
                 if data:
-                    # Always unify key name first, then normalize structure
                     data = _unify_mitigation_key(data)
                     
-                    # Ensure Mitigations are normalized to structured format
                     if 'Mitigations' in data:
                         app.logger.info(f"Raw Mitigations: {data['Mitigations']}")
                         data['Mitigations'] = normalize_mitigations(data['Mitigations'])
@@ -833,20 +843,21 @@ def auto_bulletin():
                                     data[key] = [l.strip() for l in value.split('\n') if l.strip()]
                                 else:
                                     data[key] = value.strip()
-                        # Accept mitigation from either field name; if not provided, keep structured copy
+                        
                         mit_from_form = request.form.get('Mitigations', request.form.get('Mitigation', '')).strip()
                         if mit_from_form:
                             data['Mitigations'] = normalize_mitigations(mit_from_form)
                         else:
-                            # fallback to hidden structured JSON if present
                             hidden_struct = request.form.get('_Mitigations_struct', '')
                             if hidden_struct:
                                 try:
                                     data['Mitigations'] = normalize_mitigations(hidden_struct)
                                 except Exception:
                                     app.logger.warning("Failed to parse _Mitigations_struct hidden field")
+                        
                         pdf_path = None
                         word_path = None
+                        
                         # Generate files
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
                             import json
@@ -872,11 +883,12 @@ def auto_bulletin():
                                 except Exception:
                                     pass
 
-                        # Prepare download list (inside confirm)
+                        # Prepare download list - FIXED: Use relative URLs for SSH port forwarding
                         generated_files = []
                         if pdf_path and os.path.exists(pdf_path):
                             base_name = os.path.basename(pdf_path)
-                            download_url = url_for('download_auto_bulletin_file', filename=base_name)
+                            # Use relative URL instead of url_for to avoid port issues
+                            download_url = f"/auto_bulletin/download/{base_name}"
                             generated_files.append({
                                 'name': base_name,
                                 'type': 'PDF',
@@ -886,7 +898,8 @@ def auto_bulletin():
                             
                         if word_path and os.path.exists(word_path):
                             base_name = os.path.basename(word_path)
-                            download_url = url_for('download_auto_bulletin_file', filename=base_name)
+                            # Use relative URL instead of url_for to avoid port issues
+                            download_url = f"/auto_bulletin/download/{base_name}"
                             generated_files.append({
                                 'name': base_name,
                                 'type': 'Word',
@@ -896,23 +909,17 @@ def auto_bulletin():
                     else:
                         # Preview mode: show extracted data in the form
                         extracted_data = data
-                        # Normalize mitigation for display
                         if 'Mitigations' in data:
                             data['Mitigations'] = format_mitigation_for_display(data['Mitigations'])
-                        # Special handling for CVEs ID - join with commas for display
                         if 'CVEs ID' in data and isinstance(data['CVEs ID'], list):
                             data['CVEs ID'] = ', '.join(data['CVEs ID'])
-                        # Products affected - join with commas for display
                         if 'Produits affectés' in data and isinstance(data['Produits affectés'], list):
                             data['Produits affectés'] = ', '.join(data['Produits affectés'])
-                        # References - join with commas for display
                         if 'Références' in data and isinstance(data['Références'], list):
                             data['Références'] = ', '.join(data['Références'])
 
-                        # Remove URL field from preview
                         data.pop('url', None)
 
-                        # Rebuild the form with extracted data
                         return render_template('auto_bulletin.html',
                                                extraction_error=extraction_error,
                                                extracted_data=data,
