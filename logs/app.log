@@ -516,3 +516,45 @@ Then retry.
 [2025-10-12 15:55:03,803] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 15:55:03] "[36mGET /static/doc.png HTTP/1.1[0m" 304 -
 [2025-10-12 15:55:09,063] INFO [app.download_auto_bulletin_file:728] Downloading file: C:\Users\yhachimi\OneDrive - DXC Production\Desktop\VEILLE-IA\Auto-Veille\auto_bulletin\03072025-12 - Vulnérabilité dans Microsoft Edge.docx
 [2025-10-12 15:55:09,067] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 15:55:09] "GET /auto_bulletin/download/03072025-12%20-%20Vulnérabilité%20dans%20Microsoft%20Edge.docx HTTP/1.1" 200 -
+[2025-10-12 16:42:22,497] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-12 16:42:22,500] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-12 16:42:22,535] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-12 16:42:23,875] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-12 16:42:23,882] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-12 16:44:39,153] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:44:39] "GET / HTTP/1.1" 200 -
+[2025-10-12 16:44:39,705] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:44:39] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:44:40,701] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:44:40] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-12 16:44:40,765] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:44:40] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:44:50,064] INFO [app.auto_bulletin:829] Raw Mitigations: [{'Zabbix': {'recommendation': 'Mise à jour Zabbix vers la version:', 'versions': ['Zabbix Agent 6.0.41 ou ultérieure', 'Zabbix Agent 7.0.18 ou ultérieure', 'Zabbix Agent 7.2.12 ou ultérieure', 'Zabbix Agent 7.4.2 ou ultérieure', 'Zabbix 6.0.41 ou ultérieure', 'Zabbix 7.0.17 ou ultérieure', 'Zabbix 7.2.11 ou ultérieure', 'Zabbix 7.4.1 ou ultérieure']}}]
+[2025-10-12 16:44:50,064] INFO [app.auto_bulletin:831] Normalized Mitigations: []
+[2025-10-12 16:44:50,066] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:44:50] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-12 16:44:50,101] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:44:50] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:46:53,533] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-12 16:46:53,653] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-12 16:46:55,017] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-12 16:46:55,024] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-12 16:46:56,649] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-12 16:46:56,811] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-12 16:46:58,258] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-12 16:46:58,263] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-12 16:47:04,573] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:47:04] "GET / HTTP/1.1" 200 -
+[2025-10-12 16:47:04,756] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:47:04] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:47:05,984] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:47:05] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-12 16:47:06,046] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:47:06] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:47:13,059] INFO [app.auto_bulletin:829] Raw Mitigations: [{'Zabbix': {'recommendation': 'Mise à jour Zabbix vers la version:', 'versions': ['Zabbix Agent 6.0.41 ou ultérieure', 'Zabbix Agent 7.0.18 ou ultérieure', 'Zabbix Agent 7.2.12 ou ultérieure', 'Zabbix Agent 7.4.2 ou ultérieure', 'Zabbix 6.0.41 ou ultérieure', 'Zabbix 7.0.17 ou ultérieure', 'Zabbix 7.2.11 ou ultérieure', 'Zabbix 7.4.1 ou ultérieure']}}]
+[2025-10-12 16:47:13,060] INFO [app.auto_bulletin:831] Normalized Mitigations: []
+[2025-10-12 16:47:13,062] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:47:13] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-12 16:47:13,104] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:47:13] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:50:28,506] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\VEILLE-IA\\Auto-Veille\\app.py', reloading
+[2025-10-12 16:50:28,648] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-12 16:50:30,194] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-12 16:50:30,199] INFO [werkzeug._log:97]  * Debugger PIN: 789-551-482
+[2025-10-12 16:50:35,577] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:35] "GET / HTTP/1.1" 200 -
+[2025-10-12 16:50:35,844] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:35] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:50:37,287] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:37] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-12 16:50:37,343] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:37] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-12 16:50:43,735] INFO [app.auto_bulletin:831] Raw Mitigations: [{'Zabbix': {'recommendation': 'Mise à jour Zabbix vers la version:', 'versions': ['Zabbix Agent 6.0.41 ou ultérieure', 'Zabbix Agent 7.0.18 ou ultérieure', 'Zabbix Agent 7.2.12 ou ultérieure', 'Zabbix Agent 7.4.2 ou ultérieure', 'Zabbix 6.0.41 ou ultérieure', 'Zabbix 7.0.17 ou ultérieure', 'Zabbix 7.2.11 ou ultérieure', 'Zabbix 7.4.1 ou ultérieure']}}]
+[2025-10-12 16:50:43,738] INFO [app.auto_bulletin:833] Normalized Mitigations: [{'Zabbix': {'recommendation': 'Mise à jour Zabbix vers la version:', 'versions': ['Zabbix Agent 6.0.41 ou ultérieure', 'Zabbix Agent 7.0.18 ou ultérieure', 'Zabbix Agent 7.2.12 ou ultérieure', 'Zabbix Agent 7.4.2 ou ultérieure', 'Zabbix 6.0.41 ou ultérieure', 'Zabbix 7.0.17 ou ultérieure', 'Zabbix 7.2.11 ou ultérieure', 'Zabbix 7.4.1 ou ultérieure']}}]
+[2025-10-12 16:50:43,741] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:43] "POST /auto_bulletin HTTP/1.1" 200 -
+[2025-10-12 16:50:43,820] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:43] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -

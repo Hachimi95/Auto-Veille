@@ -27,10 +27,10 @@
         <input type="text" name="Date" value="{{ extracted_data.Date or extracted_data.date }}" style="width:100%;padding:8px;margin-top:4px;">
       </label>
       <label><b>Affected Products:</b>
-        <textarea name="Produits affectés" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{{ extracted_data['Produits affectés']|join('\n') if extracted_data['Produits affectés'] else '' }}</textarea>
+        <textarea name="Produits affectés" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{% if extracted_data['Produits affectés'] %}{% if extracted_data['Produits affectés'] is string %}{{ extracted_data['Produits affectés'] }}{% else %}{{ extracted_data['Produits affectés']|join('\n') }}{% endif %}{% endif %}</textarea>
       </label>
       <label><b>CVEs:</b>
-        <textarea name="CVEs ID" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{{ extracted_data['CVEs ID']|join('\n') if extracted_data['CVEs ID'] else '' }}</textarea>
+        <textarea name="CVEs ID" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{% if extracted_data['CVEs ID'] %}{% if extracted_data['CVEs ID'] is string %}{{ extracted_data['CVEs ID'] }}{% else %}{{ extracted_data['CVEs ID']|join('\n') }}{% endif %}{% endif %}</textarea>
       </label>
       <label><b>Score:</b>
         <input type="text" name="score" value="{{ extracted_data.score or '' }}" style="width:100%;padding:8px;margin-top:4px;">
@@ -39,7 +39,7 @@
         <input type="text" name="Delai" value="{{ extracted_data.Delai or '' }}" style="width:100%;padding:8px;margin-top:4px;" placeholder="e.g., 30 Jr, 15 Jr, 5 Jr, 2 Jr">
       </label>
       <label><b>Risks:</b>
-        <textarea name="risques" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{{ extracted_data.risques|join('\n') if extracted_data.risques else '' }}</textarea>
+        <textarea name="risques" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{% if extracted_data.risques %}{% if extracted_data.risques is string %}{{ extracted_data.risques }}{% else %}{{ extracted_data.risques|join('\n') }}{% endif %}{% endif %}</textarea>
       </label>
       <label><b>Description:</b>
         <textarea name="Description" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{{ extracted_data.Description }}</textarea>
@@ -51,10 +51,10 @@
         </select>
       </label>
       <label><b>Mitigations:</b>
-  <textarea name="Mitigations" style="width:100%;padding:8px;margin-top:4px;min-height:120px;resize:vertical;">{{ extracted_data.Mitigations_display if extracted_data.Mitigations_display else '' }}</textarea>
+        <textarea name="Mitigations" style="width:100%;padding:8px;margin-top:4px;min-height:120px;resize:vertical;">{{ extracted_data.Mitigations or '' }}</textarea>
       </label>
       <label><b>References:</b>
-        <textarea name="Références" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{{ extracted_data['Références']|join('\n') if extracted_data['Références'] else '' }}</textarea>
+        <textarea name="Références" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{% if extracted_data['Références'] %}{% if extracted_data['Références'] is string %}{{ extracted_data['Références'] }}{% else %}{{ extracted_data['Références']|join('\n') }}{% endif %}{% endif %}</textarea>
       </label>
       <div style="display:flex;gap:18px;justify-content:center;margin-top:18px;">
         <button class="btn purple-btn" id="confirm-generate-btn" type="submit">Confirm & Generate</button>

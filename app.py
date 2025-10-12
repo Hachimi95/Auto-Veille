@@ -215,6 +215,8 @@ def format_mitigation_for_display(mitigation_data):
     return '\n'.join([ln for ln in formatted_lines if ln and 'versions"' not in ln.lower() and '"versions"' not in ln.lower()])
 
 
+from auto_bulletin.utils import normalize_mitigations
+
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -908,12 +910,15 @@ def auto_bulletin():
                         extracted_data = data
                         if 'Mitigations' in data:
                             data['Mitigations'] = format_mitigation_for_display(data['Mitigations'])
+                        # Fix string conversion for list fields
                         if 'CVEs ID' in data and isinstance(data['CVEs ID'], list):
-                            data['CVEs ID'] = ', '.join(data['CVEs ID'])
+                            data['CVEs ID'] = '\n'.join(data['CVEs ID'])
                         if 'Produits affectés' in data and isinstance(data['Produits affectés'], list):
-                            data['Produits affectés'] = ', '.join(data['Produits affectés'])
+                            data['Produits affectés'] = '\n'.join(data['Produits affectés'])
                         if 'Références' in data and isinstance(data['Références'], list):
-                            data['Références'] = ', '.join(data['Références'])
+                            data['Références'] = '\n'.join(data['Références'])
+                        if 'risques' in data and isinstance(data['risques'], list):
+                            data['risques'] = '\n'.join(data['risques'])
 
                         data.pop('url', None)
 
