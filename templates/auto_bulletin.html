@@ -63,16 +63,20 @@
     </form>
   {% endif %}
 
-  {% if generated_files %}
-    <div style="text-align: center; margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 32px;">
-      <a href="?download={{ generated_files.pdf }}" title="Download PDF">
-        <img src="/static/pdf.png" alt="Download PDF" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+  {% if generated_files and generated_files|length %}
+  <div class="generated-files" style="text-align: center; margin-bottom: 1.5rem;">
+    {% for file in generated_files %}
+      <a href="{{ file.url }}" class="btn btn-link" download style="display: inline-block; margin: 0.5rem 0; padding: 0.8rem 1.2rem; background: var(--card-bg); border-radius: var(--radius); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-decoration: none; color: var(--primary-color); font-weight: 500; transition: background 0.15s, transform 0.15s;">
+        {% if file.type == 'PDF' %}
+          <img src="{{ url_for('static', filename='pdf.png') }}" alt="PDF" style="height:18px;vertical-align:middle;margin-right:6px;">
+        {% else %}
+          <img src="{{ url_for('static', filename='doc.png') }}" alt="DOCX" style="height:18px;vertical-align:middle;margin-right:6px;">
+        {% endif %}
+        {{ file.name }}
       </a>
-      <a href="?download={{ generated_files.word }}" title="Download Word">
-        <img src="/static/doc.png" alt="Download Word" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
-      </a>
-    </div>
-  {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
 </section>
 {% endblock %}
 {% block scripts %}
