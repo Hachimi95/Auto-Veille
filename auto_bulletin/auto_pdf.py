@@ -79,7 +79,7 @@ def split_version_text(text):
     return parts
 
 
-def replace_placeholders_in_paragraph(paragraph, placeholders):
+def replace_placeholders_in_paragraph(paragraph, placeholders, doc=None):
     """Replace placeholders in paragraphs with formatted content."""
     original_text = paragraph.text
     original_runs = list(paragraph.runs)
@@ -206,8 +206,9 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.style = paragraph_style
 
             elif placeholder == '[Mitigations]':
-                # Get the table cell that contains this paragraph
-                parent_cell = None
+            # Get the table cell that contains this paragraph
+            parent_cell = None
+            if doc:  # Add this check
                 for table in doc.tables:
                     for row in table.rows:
                         for cell in row.cells:
@@ -510,12 +511,12 @@ def generate_docx_from_json(json_path, bulletin_id):
         # Fix table props, then replace
         fix_table_properties(doc)
         for paragraph in doc.paragraphs:
-            replace_placeholders_in_paragraph(paragraph, placeholders)
+            replace_placeholders_in_paragraph(paragraph, placeholders, doc)
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        replace_placeholders_in_paragraph(paragraph, placeholders)
+                        replace_placeholders_in_paragraph(paragraph, placeholders, doc)
 
         out_dir = os.path.dirname(os.path.abspath(__file__))
         docx_path = os.path.join(out_dir, f"{base_filename_display}.docx")
