@@ -84,6 +84,19 @@
           {% endfor %}
       </div>
       <small class="text-muted d-block mt-2">Cliquez sur les boutons ci-dessus pour télécharger les fichiers générés.</small>
+
+      {% if db_insert_result %}
+        {% if db_insert_result.error %}
+          <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:#fdecea;color:#c0392b;">
+            ❌ Erreur DB/Tracker: {{ db_insert_result.error }}
+          </div>
+        {% elif db_insert_result.vuln_saved %}
+          <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:#ecf9f1;color:#1e8449;">
+            ✅ Données enregistrées. Clients: {{ db_insert_result.clients|length }} | Lignes tracker ajoutées: {{ db_insert_result.rows_added }}.
+            <a href="{{ url_for('tracker') }}" style="margin-left:10px;">Ouvrir le tracker</a>
+          </div>
+        {% endif %}
+      {% endif %}
   </div>
   {% endif %}
 </section>

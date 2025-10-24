@@ -151,7 +151,7 @@ def parse_date_to_ymd(date_str):
             continue
     return date_str
 
-# NEW: parse "Delai" (e.g., "30 Jr") to integer days
+# NEW: parse "Delai" (e.g., "30 Jr", "15 jours") to integer days
 def parse_delai_to_days(delai, default_days=5):
     try:
         if not delai:
@@ -764,6 +764,7 @@ def auto_bulletin():
     extraction_error = None
     extracted_data = None
     generated_files = []
+    db_insert_result = None
 
     # Support direct download via query param: /auto_bulletin?download=<filename>
     if request.method == 'GET':
@@ -949,7 +950,8 @@ def auto_bulletin():
     return render_template('auto_bulletin.html',
                            extraction_error=extraction_error,
                            extracted_data=extracted_data,
-                           generated_files=generated_files)
+                           generated_files=generated_files,
+                           db_insert_result=db_insert_result)
 
 @app.route('/dashboard')
 def dashboard():
