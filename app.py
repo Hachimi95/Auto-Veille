@@ -151,6 +151,17 @@ def parse_date_to_ymd(date_str):
             continue
     return date_str
 
+# NEW: parse "Delai" (e.g., "30 Jr") to integer days
+def parse_delai_to_days(delai, default_days=5):
+    try:
+        if not delai:
+            return default_days
+        import re
+        m = re.search(r'\d+', str(delai))
+        return int(m.group()) if m else default_days
+    except Exception:
+        return default_days
+
 def format_mitigation_for_display(mitigation_data):
     """Format mitigation data for display in textarea
 

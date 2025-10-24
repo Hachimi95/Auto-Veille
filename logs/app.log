@@ -558,3 +558,36 @@ Then retry.
 [2025-10-12 16:50:43,738] INFO [app.auto_bulletin:833] Normalized Mitigations: [{'Zabbix': {'recommendation': 'Mise à jour Zabbix vers la version:', 'versions': ['Zabbix Agent 6.0.41 ou ultérieure', 'Zabbix Agent 7.0.18 ou ultérieure', 'Zabbix Agent 7.2.12 ou ultérieure', 'Zabbix Agent 7.4.2 ou ultérieure', 'Zabbix 6.0.41 ou ultérieure', 'Zabbix 7.0.17 ou ultérieure', 'Zabbix 7.2.11 ou ultérieure', 'Zabbix 7.4.1 ou ultérieure']}}]
 [2025-10-12 16:50:43,741] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:43] "POST /auto_bulletin HTTP/1.1" 200 -
 [2025-10-12 16:50:43,820] INFO [werkzeug._log:97] 127.0.0.1 - - [12/Oct/2025 16:50:43] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 15:25:09,133] INFO [werkzeug._log:97] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[2025-10-24 15:25:09,136] INFO [werkzeug._log:97] [33mPress CTRL+C to quit[0m
+[2025-10-24 15:25:09,168] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-24 15:25:11,211] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-24 15:25:11,217] INFO [werkzeug._log:97]  * Debugger PIN: 257-506-554
+[2025-10-24 15:26:37,024] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:37] "GET / HTTP/1.1" 200 -
+[2025-10-24 15:26:37,355] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:37] "GET /static/logo.png HTTP/1.1" 200 -
+[2025-10-24 15:26:37,426] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:37] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+[2025-10-24 15:26:39,160] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:39] "GET /upload HTTP/1.1" 200 -
+[2025-10-24 15:26:39,566] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:39] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 15:26:40,754] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:40] "GET /auto_bulletin HTTP/1.1" 200 -
+[2025-10-24 15:26:41,185] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:41] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 15:26:48,606] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:48] "GET /auto_patch HTTP/1.1" 200 -
+[2025-10-24 15:26:48,991] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:48] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 15:26:50,644] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:50] "GET /tracker HTTP/1.1" 200 -
+[2025-10-24 15:26:51,022] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 15:26:51] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 16:46:52,427] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 16:46:52] "GET /clients HTTP/1.1" 200 -
+[2025-10-24 16:46:52,630] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 16:46:52] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 16:46:55,488] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 16:46:55] "GET / HTTP/1.1" 200 -
+[2025-10-24 16:46:55,884] INFO [werkzeug._log:97] 127.0.0.1 - - [24/Oct/2025 16:46:55] "[36mGET /static/logo.png HTTP/1.1[0m" 304 -
+[2025-10-24 17:05:34,282] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\YY\\Auto-Veille\\app.py', reloading
+[2025-10-24 17:05:34,702] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-24 17:05:38,576] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-24 17:05:38,584] INFO [werkzeug._log:97]  * Debugger PIN: 257-506-554
+[2025-10-24 17:06:29,557] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\YY\\Auto-Veille\\app.py', reloading
+[2025-10-24 17:06:29,828] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-24 17:06:31,966] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-24 17:06:31,975] INFO [werkzeug._log:97]  * Debugger PIN: 257-506-554
+[2025-10-24 17:06:36,770] INFO [werkzeug._log:97]  * Detected change in 'C:\\Users\\yhachimi\\OneDrive - DXC Production\\Desktop\\YY\\Auto-Veille\\app.py', reloading
+[2025-10-24 17:06:36,905] INFO [werkzeug._log:97]  * Restarting with stat
+[2025-10-24 17:06:39,007] WARNING [werkzeug._log:97]  * Debugger is active!
+[2025-10-24 17:06:39,013] INFO [werkzeug._log:97]  * Debugger PIN: 257-506-554

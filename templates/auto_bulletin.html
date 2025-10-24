@@ -56,6 +56,11 @@
       <label><b>References:</b>
         <textarea name="Références" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{% if extracted_data['Références'] %}{% if extracted_data['Références'] is string %}{{ extracted_data['Références'] }}{% else %}{{ extracted_data['Références']|join('\n') }}{% endif %}{% endif %}</textarea>
       </label>
+      <!-- NEW: Opt-in to auto-insert into DB & Tracker -->
+      <label style="display:flex;align-items:center;gap:.6rem;">
+        <input type="checkbox" name="add_to_db" value="1" checked>
+        <span>Ajouter automatiquement aux tables (base) et au tracker après génération</span>
+      </label>
       <div style="display:flex;gap:18px;justify-content:center;margin-top:18px;">
         <button class="btn purple-btn" id="confirm-generate-btn" type="submit">Confirm & Generate</button>
       </div>

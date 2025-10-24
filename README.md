@@ -9,6 +9,7 @@ A comprehensive web application for managing and tracking security vulnerabiliti
 - AI-powered extraction of vulnerability data using Claude 3 Haiku
 - Automatic client and team matching based on product names
 - Review and confirm extracted data before saving to database
+- NEW: When generating via Auto Bulletin, you can confirm to automatically insert the same data into the database and tracker (no re-upload needed)
 
 ### 🔍 Advanced Vulnerability Tracking
 - Track vulnerabilities by client with filtering options
@@ -153,6 +154,12 @@ Configure which clients are affected by which products and assign responsible te
 3. The system will extract vulnerability information using AI
 4. Review the extracted data in the tracker
 5. Confirm and save to database when ready
+
+### 1bis. Generate Bulletin (Auto Bulletin) without re-upload
+1. Go to Auto Bulletin
+2. Enter the source URL and bulletin ID, extract and review data
+3. Check “Ajouter automatiquement aux tables (base) et au tracker” to save directly
+4. Generate files (PDF/DOCX). Data is saved to DB and tracker automatically
 
 ### 2. Track Vulnerabilities
 1. Use the tracker page to view all vulnerabilities
