@@ -57,10 +57,15 @@
         <textarea name="Références" style="width:100%;padding:8px;margin-top:4px;min-height:80px;">{% if extracted_data['Références'] %}{% if extracted_data['Références'] is string %}{{ extracted_data['Références'] }}{% else %}{{ extracted_data['Références']|join('\n') }}{% endif %}{% endif %}</textarea>
       </label>
       <!-- NEW: Opt-in to auto-insert into DB & Tracker -->
-      <label style="display:flex;align-items:center;gap:.6rem;">
-        <input type="checkbox" name="add_to_db" value="1" checked>
-        <span>Ajouter automatiquement aux tables (base) et au tracker après génération</span>
-      </label>
+      <div style="background:#f8f9fa;border:2px solid #e9ecef;border-radius:8px;padding:16px;margin:16px 0;">
+        <label style="display:flex;align-items:center;gap:.8rem;font-weight:600;color:#495057;cursor:pointer;">
+          <input type="checkbox" name="add_to_db" value="1" checked style="transform:scale(1.2);">
+          <span>✅ Ajouter automatiquement aux tables (base) et au tracker après génération</span>
+        </label>
+        <div style="margin-top:8px;font-size:0.9em;color:#6c757d;">
+          <strong>Avantage:</strong> Évite de re-télécharger le PDF généré dans la section Upload. Les données sont directement ajoutées au tracker.
+        </div>
+      </div>
       <div style="display:flex;gap:18px;justify-content:center;margin-top:18px;">
         <button class="btn purple-btn" id="confirm-generate-btn" type="submit">Confirm & Generate</button>
       </div>

@@ -894,6 +894,107 @@ def auto_bulletin():
                                 except Exception:
                                     pass
 
+                        # NEW: Check if user wants to add to database and tracker
+                        add_to_db = request.form.get('add_to_db') == '1'
+                        if add_to_db:
+                            try:
+                                # Process the data for database insertion (similar to upload process)
+                                app.logger.info("🔄 Processing auto_bulletin data for database insertion...")
+                                
+                                # Extract ID bulletin from the bulletin_id parameter
+                                id_bulletin = bulletin_id
+                                
+                                # Use the same client matching logic as upload process
+                                clients, teams = match_clients_and_teams(data.get('titre', data.get('title', '')))
+                                app.logger.info(f"🔍 Matched clients: {clients}")
+                                app.logger.info(f"🔍 Matched teams: {teams}")
+                                
+                                if not clients:
+                                    app.logger.warning(f"🔍 No clients matched for title: {data.get('titre', data.get('title', ''))}")
+                                    db_insert_result = {
+                                        'error': f"Aucun client trouvé pour le titre: {data.get('titre', data.get('title', ''))}"
+                                    }
+                                else:
+                                    # Clean the product name using the existing function
+                                    from upload.pdf_extractor import clean_produit_name
+                                    produit_name = clean_produit_name(data.get('titre', data.get('title', '')))
+                                    
+                                    # Process mitigation data
+                                    mitigation = clean_field(data.get('Mitigations', []))
+                                    
+                                    # Process references
+                                    reference = clean_field(data.get('Références', []), sep=", ")
+                                    
+                                    # Process risk data
+                                    risk = data.get('risques', 'Important')
+                                    if isinstance(risk, list):
+                                        risk = ", ".join(risk)
+                                    
+                                    # Process CVEs
+                                    cves = data.get('CVEs ID', [])
+                                    if isinstance(cves, list):
+                                        cves = cves
+                                    else:
+                                        cves = [cves] if cves else []
+                                    
+                                    # Process date
+                                    date_de_sortie = parse_date_to_ymd(data.get('Date', ''))
+                                    
+                                    # Process processing time from Delai
+                                    delai_str = data.get('Delai', '30 Jr')
+                                    processing_time = parse_delai_to_days(delai_str, default_days=5)
+                                    
+                                    # Create vulnerability data structure
+                                    vuln = {
+                                        'id_bulletin': id_bulletin,
+                                        'produit_name': produit_name,
+                                        'Date_de_sortie': date_de_sortie,
+                                        'description': data.get('Description', ''),
+                                        'cvss_score': data.get('score', ''),
+                                        'mitigation': mitigation,
+                                        'reference': reference,
+                                        'cves': cves,
+                                        'risk': risk,
+                                        'processing_time': processing_time,
+                                        'Date_de_notification': date_de_sortie
+                                    }
+                                    
+                                    app.logger.info(f"🔍 Vulnerability data prepared: {vuln['id_bulletin']}")
+                                    
+                                    # Insert vulnerability
+                                    db.insert_vulnerability(vuln)
+                                    app.logger.info(f"🔍 Vulnerability inserted into database")
+                                    
+                                    # Insert client tracking entries
+                                    tracking_count = 0
+                                    for i, client in enumerate(clients):
+                                        team = teams[i] if i < len(teams) else "SOC Team"
+                                        app.logger.info(f"🔍 Using team: {team} for client: {client}")
+                                        
+                                        for cve_id in cves:
+                                            # Always insert with status 'Open' and today's date by default
+                                            default_comment = f"{date_de_sortie} : Mail envoyé par SOC"
+                                            db.insert_client_tracking(id_bulletin, cve_id, {
+                                                'client': client,
+                                                'Responsable_resolution': team,
+                                                'comment': default_comment
+                                            })
+                                            tracking_count += 1
+                                    
+                                    app.logger.info(f"🔍 Inserted {tracking_count} client tracking entries")
+                                    
+                                    db_insert_result = {
+                                        'vuln_saved': True,
+                                        'clients': clients,
+                                        'rows_added': tracking_count
+                                    }
+                                    
+                            except Exception as e:
+                                app.logger.error(f"❌ Error processing auto_bulletin data for database: {str(e)}")
+                                db_insert_result = {
+                                    'error': f"Erreur lors de l'insertion en base: {str(e)}"
+                                }
+
                         # Prepare download list - FIXED: Use relative URLs for SSH port forwarding
                         generated_files = []
                         if pdf_path and os.path.exists(pdf_path):
