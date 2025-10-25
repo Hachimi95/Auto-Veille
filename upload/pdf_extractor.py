@@ -187,8 +187,8 @@ def match_clients_and_teams(title):
         matched_clients = []
         responsible_teams = []
 
-        print(f"🔍 Client matching - Title: {title}")
-        print(f"🔍 Client matching - Available clients and products: {clients_data}")
+        print(f"Client matching - Title: {title}")
+        print(f"Client matching - Available clients and products: {clients_data}")
 
         # Match clients based on product names in the title
         title_lower = title.lower()
@@ -196,7 +196,7 @@ def match_clients_and_teams(title):
         for client_name, products in clients_data.items():
             # Skip clients that have no products
             if not products:
-                print(f"🔍 Client matching - Skipping {client_name} (no products)")
+                print(f"Client matching - Skipping {client_name} (no products)")
                 continue
                 
             # Check if any of the client's products are mentioned in the title
@@ -208,20 +208,20 @@ def match_clients_and_teams(title):
                 if product_lower in title_lower:
                     matched_clients.append(client_name)
                     responsible_teams.append(responsible_resolution)
-                    print(f"🔍 Client matching - Matched {client_name} for product: {product_name} with responsible: {responsible_resolution}")
+                    print(f"Client matching - Matched {client_name} for product: {product_name} with responsible: {responsible_resolution}")
                     break  # Found a match for this client, move to next client
         
         # If no matches found, don't add any clients
         if not matched_clients:
-            print("🔍 Client matching - No specific matches found, no clients will be added")
+            print("Client matching - No specific matches found, no clients will be added")
             return [], []
         
-        print(f"🔍 Client matching - Final matched clients: {matched_clients}")
-        print(f"🔍 Client matching - Responsible teams: {responsible_teams}")
+        print(f"Client matching - Final matched clients: {matched_clients}")
+        print(f"Client matching - Responsible teams: {responsible_teams}")
 
         return matched_clients, responsible_teams
     except Exception as e:
-        print(f"🔍 Error in client matching: {e}")
+        print(f"Error in client matching: {e}")
         # Return empty lists if there's an error
         return [], []
 

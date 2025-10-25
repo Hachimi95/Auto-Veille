@@ -896,51 +896,58 @@ def auto_bulletin():
 
                         # NEW: Check if user wants to add to database and tracker
                         add_to_db = request.form.get('add_to_db') == '1'
+                        app.logger.info(f"Checkbox add_to_db value: {request.form.get('add_to_db')}")
+                        app.logger.info(f"add_to_db boolean: {add_to_db}")
+                        app.logger.info(f"All form data: {dict(request.form)}")
                         if add_to_db:
                             try:
                                 # Process the data for database insertion (similar to upload process)
-                                app.logger.info("🔄 Processing auto_bulletin data for database insertion...")
+                                app.logger.info("Processing auto_bulletin data for database insertion...")
+                                app.logger.info(f"Raw data keys: {list(data.keys())}")
+                                app.logger.info(f"Data sample: {data}")
                                 
                                 # Extract ID bulletin from the bulletin_id parameter
                                 id_bulletin = bulletin_id
                                 
                                 # Use the same client matching logic as upload process
-                                clients, teams = match_clients_and_teams(data.get('titre', data.get('title', '')))
-                                app.logger.info(f"🔍 Matched clients: {clients}")
-                                app.logger.info(f"🔍 Matched teams: {teams}")
+                                # Map auto_bulletin field names to upload field names
+                                title = data.get('titre', data.get('title', ''))
+                                clients, teams = match_clients_and_teams(title)
+                                app.logger.info(f"Matched clients: {clients}")
+                                app.logger.info(f"Matched teams: {teams}")
                                 
                                 if not clients:
-                                    app.logger.warning(f"🔍 No clients matched for title: {data.get('titre', data.get('title', ''))}")
+                                    app.logger.warning(f"No clients matched for title: {title}")
                                     db_insert_result = {
-                                        'error': f"Aucun client trouvé pour le titre: {data.get('titre', data.get('title', ''))}"
+                                        'error': f"Aucun client trouvé pour le titre: {title}"
                                     }
                                 else:
                                     # Clean the product name using the existing function
                                     from upload.pdf_extractor import clean_produit_name
-                                    produit_name = clean_produit_name(data.get('titre', data.get('title', '')))
+                                    produit_name = clean_produit_name(title)
                                     
-                                    # Process mitigation data
+                                    # Process mitigation data - auto_bulletin uses 'Mitigations' field
                                     mitigation = clean_field(data.get('Mitigations', []))
                                     
-                                    # Process references
+                                    # Process references - auto_bulletin uses 'Références' field
                                     reference = clean_field(data.get('Références', []), sep=", ")
                                     
-                                    # Process risk data
+                                    # Process risk data - auto_bulletin uses 'risques' field
                                     risk = data.get('risques', 'Important')
                                     if isinstance(risk, list):
                                         risk = ", ".join(risk)
                                     
-                                    # Process CVEs
+                                    # Process CVEs - auto_bulletin uses 'CVEs ID' field
                                     cves = data.get('CVEs ID', [])
                                     if isinstance(cves, list):
                                         cves = cves
                                     else:
                                         cves = [cves] if cves else []
                                     
-                                    # Process date
+                                    # Process date - auto_bulletin uses 'Date' field
                                     date_de_sortie = parse_date_to_ymd(data.get('Date', ''))
                                     
-                                    # Process processing time from Delai
+                                    # Process processing time from Delai - auto_bulletin uses 'Delai' field
                                     delai_str = data.get('Delai', '30 Jr')
                                     processing_time = parse_delai_to_days(delai_str, default_days=5)
                                     
@@ -959,17 +966,17 @@ def auto_bulletin():
                                         'Date_de_notification': date_de_sortie
                                     }
                                     
-                                    app.logger.info(f"🔍 Vulnerability data prepared: {vuln['id_bulletin']}")
+                                    app.logger.info(f"Vulnerability data prepared: {vuln['id_bulletin']}")
                                     
                                     # Insert vulnerability
                                     db.insert_vulnerability(vuln)
-                                    app.logger.info(f"🔍 Vulnerability inserted into database")
+                                    app.logger.info(f"Vulnerability inserted into database")
                                     
                                     # Insert client tracking entries
                                     tracking_count = 0
                                     for i, client in enumerate(clients):
                                         team = teams[i] if i < len(teams) else "SOC Team"
-                                        app.logger.info(f"🔍 Using team: {team} for client: {client}")
+                                        app.logger.info(f"Using team: {team} for client: {client}")
                                         
                                         for cve_id in cves:
                                             # Always insert with status 'Open' and today's date by default
@@ -981,7 +988,7 @@ def auto_bulletin():
                                             })
                                             tracking_count += 1
                                     
-                                    app.logger.info(f"🔍 Inserted {tracking_count} client tracking entries")
+                                    app.logger.info(f"Inserted {tracking_count} client tracking entries")
                                     
                                     db_insert_result = {
                                         'vuln_saved': True,
@@ -990,7 +997,7 @@ def auto_bulletin():
                                     }
                                     
                             except Exception as e:
-                                app.logger.error(f"❌ Error processing auto_bulletin data for database: {str(e)}")
+                                app.logger.error(f"Error processing auto_bulletin data for database: {str(e)}")
                                 db_insert_result = {
                                     'error': f"Erreur lors de l'insertion en base: {str(e)}"
                                 }
