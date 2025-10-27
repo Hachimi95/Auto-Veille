@@ -12,6 +12,7 @@ import json
 import logging
 import sys
 import tempfile
+import re
 from logging.handlers import RotatingFileHandler  # added
 load_dotenv()
 from auto_bulletin.auto_json import DGSSIScraper, CERTFRScraper
@@ -131,6 +132,34 @@ def normalize_mitigations(raw):
     # Fallback
     return [{'recommendation': str(raw).strip(), 'versions': []}] if str(raw).strip() else []
 
+def convert_mitigation_json_to_text(mitigations_data):
+    """Convert mitigation JSON structure to readable text format like upload process."""
+    mitigation_text = ""
+    
+    if isinstance(mitigations_data, list):
+        for mitigation_item in mitigations_data:
+            if isinstance(mitigation_item, dict):
+                for product, details in mitigation_item.items():
+                    if isinstance(details, dict):
+                        recommendation = details.get('recommendation', '')
+                        versions = details.get('versions', [])
+                        
+                        if recommendation:
+                            mitigation_text += f"{recommendation}\n"
+                        if versions:
+                            for version in versions:
+                                mitigation_text += f"- {version}\n"
+                    else:
+                        mitigation_text += f"{product}: {details}\n"
+            else:
+                mitigation_text += f"{mitigation_item}\n"
+    elif isinstance(mitigations_data, str):
+        mitigation_text = mitigations_data
+    else:
+        mitigation_text = str(mitigations_data)
+    
+    return mitigation_text.strip()
+
 def _unify_mitigation_key(data: dict) -> dict:
     """Normalize any mitigation-like key to 'Mitigations'."""
     if not isinstance(data, dict):
@@ -144,11 +173,33 @@ def _unify_mitigation_key(data: dict) -> dict:
 def parse_date_to_ymd(date_str):
     """Convert date string to YYYY-MM-DD if possible, else return as is."""
     from datetime import datetime
-    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y'):
+    
+    # Handle French dates first
+    if isinstance(date_str, str) and any(month in date_str.lower() for month in ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']):
+        try:
+            months = {
+                "janvier": "01", "février": "02", "mars": "03", "avril": "04",
+                "mai": "05", "juin": "06", "juillet": "07", "août": "08",
+                "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"
+            }
+            parts = date_str.split()
+            if len(parts) >= 3:
+                day = parts[0].zfill(2)  # Ensure 2 digits
+                month = months.get(parts[1].lower(), "")
+                year = parts[2]
+                
+                if month:
+                    return f"{year}-{month}-{day}"
+        except Exception:
+            pass
+    
+    # Handle other common formats
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%m-%d-%Y'):
         try:
             return datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
         except Exception:
             continue
+    
     return date_str
 
 # NEW: parse "Delai" (e.g., "30 Jr", "15 jours") to integer days
@@ -907,7 +958,18 @@ def auto_bulletin():
                                 app.logger.info(f"Data sample: {data}")
                                 
                                 # Extract ID bulletin from the bulletin_id parameter
+                                # Use the same logic as upload process: extract from filename pattern
                                 id_bulletin = bulletin_id
+                                # If bulletin_id doesn't match the expected pattern, try to extract it
+                                if not re.match(r'\d{8}-\d+', bulletin_id):
+                                    # Try to extract from the generated filename pattern
+                                    # The auto_bulletin generates files like "23102025-99 - Une Vulnérabilité dans le Google Chrome.pdf"
+                                    match = re.match(r'(\d{8}-\d+)', bulletin_id)
+                                    if match:
+                                        id_bulletin = match.group(1)
+                                    else:
+                                        # Fallback: use the bulletin_id as is
+                                        id_bulletin = bulletin_id
                                 
                                 # Use the same client matching logic as upload process
                                 # Map auto_bulletin field names to upload field names
@@ -922,12 +984,21 @@ def auto_bulletin():
                                         'error': f"Aucun client trouvé pour le titre: {title}"
                                     }
                                 else:
-                                    # Clean the product name using the existing function
-                                    from upload.pdf_extractor import clean_produit_name
-                                    produit_name = clean_produit_name(title)
+                                    # Extract product name from title using the existing DescriptionHandler
+                                    # This avoids duplicating the product extraction logic
+                                    from auto_bulletin.description import DescriptionHandler
+                                    description_handler = DescriptionHandler("dummy_key")  # We only need the extract_product_name method
+                                    product_name = description_handler.extract_product_name(title)
+                                    
+                                    # Fallback: use the title as is if no product found
+                                    if not product_name:
+                                        product_name = title
+                                    
+                                    app.logger.info(f"Extracted product name: {product_name}")
                                     
                                     # Process mitigation data - auto_bulletin uses 'Mitigations' field
-                                    mitigation = clean_field(data.get('Mitigations', []))
+                                    # Convert JSON structure to readable text format like upload process
+                                    mitigation = convert_mitigation_json_to_text(data.get('Mitigations', []))
                                     
                                     # Process references - auto_bulletin uses 'Références' field
                                     reference = clean_field(data.get('Références', []), sep=", ")
@@ -954,7 +1025,7 @@ def auto_bulletin():
                                     # Create vulnerability data structure
                                     vuln = {
                                         'id_bulletin': id_bulletin,
-                                        'produit_name': produit_name,
+                                        'produit_name': product_name,
                                         'Date_de_sortie': date_de_sortie,
                                         'description': data.get('Description', ''),
                                         'cvss_score': data.get('score', ''),
