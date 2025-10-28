@@ -6,6 +6,7 @@ from datetime import datetime
 from docx.shared import Pt
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor
@@ -214,20 +215,22 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.clear()
                 if isinstance(value, list):
                     for m_idx, mitigation in enumerate(value):
-                        # Normalize details shape
+                        # Normalize details shape (product-key dict or flat dict)
                         details = None
                         if isinstance(mitigation, dict) and ('recommendation' in mitigation or 'versions' in mitigation):
                             details = mitigation
                         elif isinstance(mitigation, dict) and len(mitigation) == 1:
+                            # e.g., {"Apache Tomcat": {recommendation: ..., versions: [...]}}
                             details = next(iter(mitigation.values()))
                         elif isinstance(mitigation, str):
                             details = {'recommendation': mitigation, 'versions': []}
                         else:
                             # Fallback to string render
-                            rec_run = paragraph.add_run(str(mitigation))
-                            rec_run.font.name = "Arial"
-                            rec_run.font.size = Pt(10)
-                            paragraph.add_run('\n')
+                            run = paragraph.add_run(str(mitigation))
+                            run.font.name = "Arial"
+                            run.font.size = Pt(10)
+                            # Force line break
+                            run.add_break(WD_BREAK.LINE)
                             continue
 
                         if not isinstance(details, dict):
@@ -240,15 +243,16 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                             rec_run.font.name = "Arial"
                             rec_run.font.size = Pt(10)
                             rec_run.font.bold = False
-                            paragraph.add_run('\n')
+                            # Force line break after recommendation
+                            rec_run.add_break(WD_BREAK.LINE)
 
                         # 2) Version lines with arrow bullet and bolded versions
                         versions = details.get('versions', []) or []
                         for v_idx, version in enumerate(versions):
                             # Bullet "➢"
-                            bullet = paragraph.add_run("   ➢ ")
-                            bullet.font.name = "Arial"
-                            bullet.font.size = Pt(11)
+                            bullet_run = paragraph.add_run("   ➢ ")
+                            bullet_run.font.name = "Arial"
+                            bullet_run.font.size = Pt(11)
 
                             # Content with bolded version segments
                             parts = split_version_text(str(version))
@@ -258,13 +262,14 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                 run.font.size = Pt(10)
                                 run.font.bold = should_bold
 
-                            # Newline after each version line
-                            if v_idx < len(versions) - 1:
-                                paragraph.add_run('\n')
+                            # Line break after each version line
+                            br = paragraph.add_run()
+                            br.add_break(WD_BREAK.LINE)
 
-                        # Extra spacing between mitigation blocks when multiple entries
+                        # Extra spacing between mitigation blocks
                         if m_idx < len(value) - 1:
-                            paragraph.add_run('\n')
+                            spacer = paragraph.add_run()
+                            spacer.add_break(WD_BREAK.LINE)
 
                         # Layout tweaks
                         paragraph.paragraph_format.left_indent = Pt(12)
