@@ -202,6 +202,39 @@ def parse_date_to_ymd(date_str):
     
     return date_str
 
+# NEW: format to ddmmyyyy (for id_bulletin)
+def format_to_ddmmyyyy(date_str: str) -> str:
+    """Return date as ddmmyyyy from various inputs (French or common formats)."""
+    if not date_str:
+        return datetime.now().strftime('%d%m%Y')
+    # Try French format like '8 septembre 2025'
+    try:
+        months = {
+            "janvier": "01", "février": "02", "mars": "03", "avril": "04",
+            "mai": "05", "juin": "06", "juillet": "07", "août": "08",
+            "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"
+        }
+        parts = str(date_str).split()
+        if len(parts) >= 3 and parts[1].lower() in months:
+            day = parts[0].zfill(2)
+            month = months[parts[1].lower()]
+            year = parts[2]
+            return f"{day}{month}{year}"
+    except Exception:
+        pass
+
+    # Try parse to Y-M-D then convert
+    try:
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%m-%d-%Y'):
+            try:
+                dt = datetime.strptime(str(date_str), fmt)
+                return dt.strftime('%d%m%Y')
+            except Exception:
+                continue
+    except Exception:
+        pass
+    # Fallback: today
+    return datetime.now().strftime('%d%m%Y')
 # NEW: parse "Delai" (e.g., "30 Jr", "15 jours") to integer days
 def parse_delai_to_days(delai, default_days=5):
     try:
@@ -310,7 +343,13 @@ def upload():
                     continue  # skip this file
 
                 filename = os.path.basename(file.filename)
-                id_bulletin = filename.split('-')[0] + '-' + filename.split('-')[1] if '-' in filename else filename
+                # Robust ID extraction from filename (DDMMYYYY-NN ...)
+                try:
+                    from upload.pdf_extractor import extract_id_bulletin
+                    id_bulletin = extract_id_bulletin(filename)
+                except Exception:
+                    # Fallback to previous behavior
+                    id_bulletin = filename.split('-')[0] + '-' + filename.split('-')[1] if '-' in filename else filename
                 print(f"🔍 ID Bulletin: {id_bulletin}")
 
                 clients, teams = match_clients_and_teams(data['title'])
@@ -957,19 +996,28 @@ def auto_bulletin():
                                 app.logger.info(f"Raw data keys: {list(data.keys())}")
                                 app.logger.info(f"Data sample: {data}")
                                 
-                                # Extract ID bulletin from the bulletin_id parameter
-                                # Use the same logic as upload process: extract from filename pattern
-                                id_bulletin = bulletin_id
-                                # If bulletin_id doesn't match the expected pattern, try to extract it
-                                if not re.match(r'\d{8}-\d+', bulletin_id):
-                                    # Try to extract from the generated filename pattern
-                                    # The auto_bulletin generates files like "23102025-99 - Une Vulnérabilité dans le Google Chrome.pdf"
-                                    match = re.match(r'(\d{8}-\d+)', bulletin_id)
-                                    if match:
-                                        id_bulletin = match.group(1)
-                                    else:
-                                        # Fallback: use the bulletin_id as is
-                                        id_bulletin = bulletin_id
+                                # Build robust id_bulletin: prefer extracting from generated file name, else compose from Date + number
+                                id_bulletin = None
+                                try:
+                                    from upload.pdf_extractor import extract_id_bulletin
+                                    base_name = None
+                                    if pdf_path and os.path.exists(pdf_path):
+                                        base_name = os.path.basename(pdf_path)
+                                    elif word_path and os.path.exists(word_path):
+                                        base_name = os.path.basename(word_path)
+                                    if base_name:
+                                        id_bulletin = extract_id_bulletin(base_name)
+                                except Exception:
+                                    id_bulletin = None
+
+                                if not id_bulletin:
+                                    # Compose like DDMMYYYY-N from form/date
+                                    num = str(bulletin_id).strip()
+                                    # Keep only trailing digits for number
+                                    mnum = re.search(r'(\d+)$', num)
+                                    num = mnum.group(1) if mnum else num
+                                    ddmmyyyy = format_to_ddmmyyyy(data.get('Date', ''))
+                                    id_bulletin = f"{ddmmyyyy}-{num}"
                                 
                                 # Use the same client matching logic as upload process
                                 # Map auto_bulletin field names to upload field names
@@ -984,14 +1032,16 @@ def auto_bulletin():
                                         'error': f"Aucun client trouvé pour le titre: {title}"
                                     }
                                 else:
-                                    # Extract product name from title using the existing DescriptionHandler
-                                    # This avoids duplicating the product extraction logic
-                                    description_handler = DescriptionHandler("dummy_key")  # We only need the extract_product_name method
+                                    # Extract product name from title, then normalize with cleaner (shared with upload)
+                                    description_handler = DescriptionHandler("dummy_key")  # Only using extract_product_name
                                     product_name = description_handler.extract_product_name(title)
-                                    
-                                    # Fallback: use the title as is if no product found
                                     if not product_name:
                                         product_name = title
+                                    try:
+                                        from upload.pdf_extractor import clean_produit_name
+                                        product_name = clean_produit_name(product_name)
+                                    except Exception:
+                                        pass
                                     
                                     app.logger.info(f"Extracted product name: {product_name}")
                                     

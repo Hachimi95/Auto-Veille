@@ -3,6 +3,89 @@ import re
 from typing import List, Dict, Any
 
 
+def smart_title_case(text: str) -> str:
+    """Return a nicely cased product/title string.
+
+    - Title-case significant words
+    - Keep common French stopwords lowercased (except at start)
+    - Preserve known acronyms/brands canonical casing (VMware, iOS, macOS, OpenSSH, etc.)
+    """
+    if not isinstance(text, str):
+        return str(text)
+
+    text = text.strip()
+    if not text:
+        return text
+
+    # Canonical forms for brands/acronyms
+    canonical = {
+        'vmware': 'VMware',
+        'ios': 'iOS',
+        'macos': 'macOS',
+        'openssl': 'OpenSSL',
+        'openssh': 'OpenSSH',
+        'ssh': 'SSH',
+        'ssl': 'SSL',
+        'tls': 'TLS',
+        'api': 'API',
+        'http': 'HTTP',
+        'https': 'HTTPS',
+        'dns': 'DNS',
+        'sql': 'SQL',
+        'se': 'SE',
+        'os': 'OS',
+        'cve': 'CVE',
+        'java': 'Java',
+        'oracle': 'Oracle',
+        'microsoft': 'Microsoft',
+        'windows': 'Windows',
+        'linux': 'Linux',
+        'cisco': 'Cisco',
+        'fortinet': 'Fortinet',
+        'chrome': 'Chrome',
+        'edge': 'Edge',
+        'firefox': 'Firefox',
+    }
+
+    stopwords = {
+        'de', 'du', 'des', 'la', 'le', 'les', 'dans', 'et', 'ou', 'pour', 'avec',
+        'sur', 'par', 'un', 'une', 'en', 'au', 'aux', "d'", 'd’'
+    }
+
+    words = text.split()
+    out = []
+    for i, w in enumerate(words):
+        lw = w.lower()
+        # Keep punctuation attached if present
+        prefix = ''
+        suffix = ''
+        core = w
+        # Simple punctuation handling: strip surrounding punctuation but keep it
+        while core and not core[0].isalnum():
+            prefix += core[0]
+            core = core[1:]
+        while core and not core[-1].isalnum():
+            suffix = core[-1] + suffix
+            core = core[:-1]
+
+        lc = core.lower()
+        if not core:
+            out.append(w)
+            continue
+
+        if lc in canonical:
+            norm = canonical[lc]
+        elif lc in stopwords and i != 0:
+            norm = lc
+        else:
+            # Default title case for the core; keep hyphenated parts proper-cased too
+            norm = '-'.join(part[:1].upper() + part[1:].lower() if part else '' for part in lc.split('-'))
+
+        out.append(prefix + norm + suffix)
+
+    return ' '.join(out)
+
+
 def clean_versions(versions) -> List[str]:
     out = []
     if isinstance(versions, str):

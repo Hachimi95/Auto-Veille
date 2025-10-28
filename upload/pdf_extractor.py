@@ -62,8 +62,15 @@ def clean_produit_name(title):
     
     # Clean up extra spaces and capitalize first letter
     cleaned = ' '.join(title_lower.split())
-    if cleaned:
-        cleaned = cleaned[0].upper() + cleaned[1:]
+
+    # Apply smart title case with acronym handling
+    try:
+        from auto_bulletin.utils import smart_title_case
+        cleaned = smart_title_case(cleaned)
+    except Exception:
+        # Fallback simple capitalization
+        if cleaned:
+            cleaned = cleaned[0].upper() + cleaned[1:]
     
     return cleaned if cleaned else title
 
