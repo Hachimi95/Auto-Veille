@@ -14,6 +14,7 @@ import subprocess
 import platform
 import shutil
 import tempfile  # added
+from lxml import etree
 
 __all__ = ["generate_pdf_from_json", "generate_docx_from_json"]  # ensure import works
 
@@ -207,75 +208,105 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.style = paragraph_style
 
             elif placeholder == '[Mitigations]':
-                # Render mitigation as: recommendation (line), then each version on its own line
-                # prefixed with a "➢" bullet, with version numbers bold (using split_version_text)
+                # Robust rendering inside table cells: replace the entire cell content
+                # with separate paragraphs: 1 recommendation line, then one line per version ("➢ ")
                 paragraph_alignment = paragraph.alignment
                 paragraph_style = paragraph.style
 
-                paragraph.clear()
+                # Build lines to render: [(is_version, text), ...]
+                lines = []
                 if isinstance(value, list):
-                    for m_idx, mitigation in enumerate(value):
-                        # Normalize details shape (product-key dict or flat dict)
-                        details = None
+                    for mitigation in value:
+                        # Normalize shapes
                         if isinstance(mitigation, dict) and ('recommendation' in mitigation or 'versions' in mitigation):
                             details = mitigation
                         elif isinstance(mitigation, dict) and len(mitigation) == 1:
-                            # e.g., {"Apache Tomcat": {recommendation: ..., versions: [...]}}
                             details = next(iter(mitigation.values()))
                         elif isinstance(mitigation, str):
                             details = {'recommendation': mitigation, 'versions': []}
                         else:
-                            # Fallback to string render
-                            run = paragraph.add_run(str(mitigation))
-                            run.font.name = "Arial"
-                            run.font.size = Pt(10)
-                            # Force line break
-                            run.add_break(WD_BREAK.LINE)
-                            continue
+                            details = {'recommendation': str(mitigation), 'versions': []}
 
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
 
-                        # 1) Recommendation line
                         rec_text = (details.get('recommendation') or '').strip()
                         if rec_text:
-                            rec_run = paragraph.add_run(rec_text)
-                            rec_run.font.name = "Arial"
-                            rec_run.font.size = Pt(10)
-                            rec_run.font.bold = False
-                            # Force line break after recommendation
-                            rec_run.add_break(WD_BREAK.LINE)
+                            lines.append((False, rec_text))
+                        for version in (details.get('versions', []) or []):
+                            lines.append((True, str(version)))
 
-                        # 2) Version lines with arrow bullet and bolded versions
-                        versions = details.get('versions', []) or []
-                        for v_idx, version in enumerate(versions):
-                            # Bullet "➢"
-                            bullet_run = paragraph.add_run("   ➢ ")
-                            bullet_run.font.name = "Arial"
-                            bullet_run.font.size = Pt(11)
+                # Helper: add a run with text, bold optional
+                def _append_run(p_elm, text, bold=False):
+                    r = OxmlElement('w:r')
+                    if bold:
+                        rPr = OxmlElement('w:rPr')
+                        b = OxmlElement('w:b')
+                        rPr.append(b)
+                        r.append(rPr)
+                    t = OxmlElement('w:t')
+                    t.set(qn('xml:space'), 'preserve')
+                    t.text = text
+                    r.append(t)
+                    p_elm.append(r)
 
-                            # Content with bolded version segments
-                            parts = split_version_text(str(version))
-                            for text_part, should_bold in parts:
-                                run = paragraph.add_run(text_part)
-                                run.font.name = "Arial"
-                                run.font.size = Pt(10)
-                                run.font.bold = should_bold
+                # Find parent table cell (w:tc)
+                tc = None
+                parent = paragraph._element
+                while parent is not None:
+                    if parent.tag.endswith('tc'):
+                        tc = parent
+                        break
+                    parent = parent.getparent()
 
-                            # Line break after each version line
-                            br = paragraph.add_run()
-                            br.add_break(WD_BREAK.LINE)
+                if tc is not None:
+                    # Remove all existing paragraphs in the cell
+                    for child in list(tc):
+                        if child.tag.endswith('p'):
+                            tc.remove(child)
 
-                        # Extra spacing between mitigation blocks
-                        if m_idx < len(value) - 1:
-                            spacer = paragraph.add_run()
-                            spacer.add_break(WD_BREAK.LINE)
+                    # Append each line as its own paragraph within the cell
+                    for is_version, text in lines:
+                        p = OxmlElement('w:p')
+                        pPr = OxmlElement('w:pPr')
+                        # Left indent ~ 240 twips (~12pt)
+                        ind = OxmlElement('w:ind')
+                        ind.set(qn('w:left'), '240')
+                        pPr.append(ind)
+                        p.append(pPr)
 
-                        # Layout tweaks
-                        paragraph.paragraph_format.left_indent = Pt(12)
-                        paragraph.paragraph_format.line_spacing = 1.6
+                        if is_version:
+                            _append_run(p, '➢ ', bold=False)
+                            for part, should_bold in split_version_text(text):
+                                _append_run(p, part, bold=should_bold)
+                        else:
+                            _append_run(p, text, bold=False)
 
-                # Restore paragraph properties
+                        tc.append(p)
+
+                    # Clear placeholder paragraph content to avoid residual text
+                    paragraph.clear()
+                else:
+                    # Fallback: same-paragraph with explicit line breaks
+                    paragraph.clear()
+                    for is_version, text in lines:
+                        if is_version:
+                            run_bullet = paragraph.add_run('➢ ')
+                            run_bullet.font.name = 'Arial'
+                            run_bullet.font.size = Pt(11)
+                            for part, should_bold in split_version_text(text):
+                                r = paragraph.add_run(part)
+                                r.font.name = 'Arial'
+                                r.font.size = Pt(10)
+                                r.font.bold = should_bold
+                        else:
+                            r = paragraph.add_run(text)
+                            r.font.name = 'Arial'
+                            r.font.size = Pt(10)
+                            r.font.bold = False
+                        br = paragraph.add_run()
+                        br.add_break(WD_BREAK.LINE)
+
                 paragraph.alignment = paragraph_alignment
                 paragraph.style = paragraph_style
 
