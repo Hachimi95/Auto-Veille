@@ -60,11 +60,8 @@
       <div style="background:#f8f9fa;border:2px solid #e9ecef;border-radius:8px;padding:16px;margin:16px 0;">
         <label style="display:flex;align-items:center;gap:.8rem;font-weight:600;color:#495057;cursor:pointer;">
           <input type="checkbox" name="add_to_db" value="1" checked style="transform:scale(1.2);">
-          <span>✅ Ajouter automatiquement aux tables (base) et au tracker après génération</span>
+          <span>Ajouter au tracker</span>
         </label>
-        <div style="margin-top:8px;font-size:0.9em;color:#6c757d;">
-          <strong>Avantage:</strong> Évite de re-télécharger le PDF généré dans la section Upload. Les données sont directement ajoutées au tracker.
-        </div>
       </div>
       <div style="display:flex;gap:18px;justify-content:center;margin-top:18px;">
         <button class="btn purple-btn" id="confirm-generate-btn" type="submit">Confirm & Generate</button>
@@ -74,34 +71,32 @@
   {% endif %}
 
   {% if generated_files and generated_files|length > 0 %}
-  <div class="mt-4">
-      <h4>📁 Fichiers générés</h4>
-      <div class="d-flex gap-3">
-          {% for file in generated_files %}
-          <a href="{{ file.url }}" class="btn btn-outline-primary d-flex align-items-center" target="_blank">
-              {% if file.type == 'PDF' %}
-              <img src="{{ url_for('static', filename='pdf.png') }}" alt="PDF" style="height:20px;margin-right:8px;">
-              {% else %}
-              <img src="{{ url_for('static', filename='doc.png') }}" alt="DOCX" style="height:20px;margin-right:8px;">
-              {% endif %}
-              Télécharger {{ file.type }}
-          </a>
-          {% endfor %}
-      </div>
-      <small class="text-muted d-block mt-2">Cliquez sur les boutons ci-dessus pour télécharger les fichiers générés.</small>
+  <div class="gen-files-card">
+    <div class="gen-files-header">
+      <span class="gen-files-title">📁 Fichiers générés</span>
+    </div>
+    <div class="file-icons">
+      {% for file in generated_files %}
+        <a href="{{ file.url }}" class="file-icon-btn" target="_blank" title="Télécharger {{ file.type }}">
+          {% if file.type == 'PDF' %}
+            <img src="{{ url_for('static', filename='pdf.png') }}" alt="PDF" />
+          {% else %}
+            <img src="{{ url_for('static', filename='doc.png') }}" alt="DOCX" />
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
 
-      {% if db_insert_result %}
-        {% if db_insert_result.error %}
-          <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:#fdecea;color:#c0392b;">
-            ❌ Erreur DB/Tracker: {{ db_insert_result.error }}
-          </div>
-        {% elif db_insert_result.vuln_saved %}
-          <div style="margin-top:12px;padding:10px 14px;border-radius:8px;background:#ecf9f1;color:#1e8449;">
-            ✅ Données enregistrées. Clients: {{ db_insert_result.clients|length }} | Lignes tracker ajoutées: {{ db_insert_result.rows_added }}.
-            <a href="{{ url_for('tracker') }}" style="margin-left:10px;">Ouvrir le tracker</a>
-          </div>
-        {% endif %}
+    {% if db_insert_result %}
+      {% if db_insert_result.error %}
+        <div class="status-card error">❌ {{ db_insert_result.error }}</div>
+      {% elif db_insert_result.vuln_saved %}
+        <div class="status-row">
+          <div class="status-card success">✅ Enregistré • Clients: {{ db_insert_result.clients|length }} • Lignes: {{ db_insert_result.rows_added }}</div>
+          <a class="link-btn" href="{{ url_for('tracker') }}">Ouvrir le tracker</a>
+        </div>
       {% endif %}
+    {% endif %}
   </div>
   {% endif %}
 </section>
@@ -132,6 +127,76 @@
     color: #fff;
     outline: none;
   }
+
+  /* New: generated files compact UI */
+  .gen-files-card {
+    margin-top: 1.25rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border, #e9ecef);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .gen-files-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .gen-files-title {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+  }
+  .file-icons {
+    display: flex;
+    gap: 12px;
+  }
+  .file-icon-btn {
+    width: 46px;
+    height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #f8f9fa;
+    border: 1px solid #eef1f4;
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .file-icon-btn:hover {
+    transform: translateY(-2px);
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  }
+  .file-icon-btn img {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
+  .status-row {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .status-card {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .status-card.success { background: #ecf9f1; color: #1e8449; }
+  .status-card.error { background: #fdecea; color: #c0392b; }
+  .link-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background .12s ease;
+  }
+  .link-btn:hover { background: #e5e7eb; }
 </style>
 <script>
 const confirmForm = document.getElementById('confirm-form');
