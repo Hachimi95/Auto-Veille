@@ -986,7 +986,6 @@ def auto_bulletin():
                                 else:
                                     # Extract product name from title using the existing DescriptionHandler
                                     # This avoids duplicating the product extraction logic
-                                    from auto_bulletin.description import DescriptionHandler
                                     description_handler = DescriptionHandler("dummy_key")  # We only need the extract_product_name method
                                     product_name = description_handler.extract_product_name(title)
                                     
