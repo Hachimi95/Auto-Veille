@@ -208,46 +208,79 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.style = paragraph_style
 
             elif placeholder == '[Mitigations]':
-                # Robust rendering inside table cells: replace the entire cell content
-                # with separate paragraphs: 1 recommendation line, then one line per version ("➢ ")
+                # Store original paragraph properties
                 paragraph_alignment = paragraph.alignment
                 paragraph_style = paragraph.style
 
                 # Build lines to render: [(is_version, text), ...]
                 lines = []
+                
                 if isinstance(value, list):
                     for mitigation in value:
-                        # Normalize shapes
+                        # Handle different mitigation formats
+                        details = None
+                        
+                        # Case 1: mitigation is already a dict with 'recommendation' and 'versions'
                         if isinstance(mitigation, dict) and ('recommendation' in mitigation or 'versions' in mitigation):
                             details = mitigation
+                        # Case 2: mitigation is a dict with a single key (product name) containing details
                         elif isinstance(mitigation, dict) and len(mitigation) == 1:
-                            details = next(iter(mitigation.values()))
+                            product_key = list(mitigation.keys())[0]
+                            details = mitigation[product_key]
+                        # Case 3: mitigation is a string
                         elif isinstance(mitigation, str):
                             details = {'recommendation': mitigation, 'versions': []}
+                        # Case 4: other types - convert to string
                         else:
                             details = {'recommendation': str(mitigation), 'versions': []}
-
+                        
+                        # Ensure details is a dict
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
-
+                        
+                        # Extract recommendation and versions
                         rec_text = (details.get('recommendation') or '').strip()
+                        versions = details.get('versions', []) or []
+                        
+                        # Add recommendation as a non-version line
                         if rec_text:
                             lines.append((False, rec_text))
-                        for version in (details.get('versions', []) or []):
-                            lines.append((True, str(version)))
+                        
+                        # Add each version as a version line
+                        for version in versions:
+                            version_str = str(version).strip()
+                            if version_str:
+                                lines.append((True, version_str))
 
-                # Helper: add a run with text, bold optional
+                # Helper function to add a run with text and optional bold
                 def _append_run(p_elm, text, bold=False):
                     r = OxmlElement('w:r')
+                    rPr = OxmlElement('w:rPr')
+                    
+                    # Set font
+                    rFonts = OxmlElement('w:rFonts')
+                    rFonts.set(qn('w:ascii'), 'Arial')
+                    rFonts.set(qn('w:hAnsi'), 'Arial')
+                    rPr.append(rFonts)
+                    
+                    # Set size (10pt = 20 half-points)
+                    sz = OxmlElement('w:sz')
+                    sz.set(qn('w:val'), '20')
+                    rPr.append(sz)
+                    
+                    # Set bold if needed
                     if bold:
-                        rPr = OxmlElement('w:rPr')
                         b = OxmlElement('w:b')
                         rPr.append(b)
-                        r.append(rPr)
+                    
+                    r.append(rPr)
+                    
+                    # Add text
                     t = OxmlElement('w:t')
                     t.set(qn('xml:space'), 'preserve')
                     t.text = text
                     r.append(t)
+                    
                     p_elm.append(r)
 
                 # Find parent table cell (w:tc)
@@ -269,17 +302,31 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                     for is_version, text in lines:
                         p = OxmlElement('w:p')
                         pPr = OxmlElement('w:pPr')
-                        # Left indent ~ 240 twips (~12pt)
+                        
+                        # Set left indent for all paragraphs (~12pt = 240 twips)
                         ind = OxmlElement('w:ind')
                         ind.set(qn('w:left'), '240')
                         pPr.append(ind)
+                        
+                        # Set spacing
+                        spacing = OxmlElement('w:spacing')
+                        spacing.set(qn('w:after'), '80')  # Small space after each paragraph
+                        spacing.set(qn('w:line'), '276')  # Line spacing
+                        spacing.set(qn('w:lineRule'), 'auto')
+                        pPr.append(spacing)
+                        
                         p.append(pPr)
 
                         if is_version:
+                            # Add bullet character ➢
                             _append_run(p, '➢ ', bold=False)
-                            for part, should_bold in split_version_text(text):
+                            
+                            # Split version text and apply bold to version numbers
+                            parts = split_version_text(text)
+                            for part, should_bold in parts:
                                 _append_run(p, part, bold=should_bold)
                         else:
+                            # Regular recommendation text (not bolded)
                             _append_run(p, text, bold=False)
 
                         tc.append(p)
@@ -289,27 +336,41 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 else:
                     # Fallback: same-paragraph with explicit line breaks
                     paragraph.clear()
-                    for is_version, text in lines:
+                    
+                    for idx, (is_version, text) in enumerate(lines):
                         if is_version:
+                            # Add bullet
                             run_bullet = paragraph.add_run('➢ ')
                             run_bullet.font.name = 'Arial'
-                            run_bullet.font.size = Pt(11)
-                            for part, should_bold in split_version_text(text):
+                            run_bullet.font.size = Pt(10)
+                            
+                            # Split and add version text with bold for version numbers
+                            parts = split_version_text(text)
+                            for part, should_bold in parts:
                                 r = paragraph.add_run(part)
                                 r.font.name = 'Arial'
                                 r.font.size = Pt(10)
                                 r.font.bold = should_bold
                         else:
+                            # Regular recommendation text
                             r = paragraph.add_run(text)
                             r.font.name = 'Arial'
                             r.font.size = Pt(10)
                             r.font.bold = False
-                        br = paragraph.add_run()
-                        br.add_break(WD_BREAK.LINE)
+                        
+                        # Add line break after each line (except possibly the last)
+                        if idx < len(lines) - 1:
+                            br = paragraph.add_run()
+                            br.add_break(WD_BREAK.LINE)
+                    
+                    # Set paragraph formatting
+                    paragraph.paragraph_format.left_indent = Pt(12)
+                    paragraph.paragraph_format.line_spacing = 1.3
+                    paragraph.paragraph_format.space_after = Pt(4)
 
+                # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
                 paragraph.style = paragraph_style
-
             else:
                 # For other placeholders, replace directly and preserve formatting
                 original_text = original_text.replace(placeholder, str(value))
