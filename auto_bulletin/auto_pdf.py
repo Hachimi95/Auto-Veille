@@ -206,62 +206,70 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.style = paragraph_style
 
             elif placeholder == '[Mitigations]':
+                # Render mitigation as: recommendation (line), then each version on its own line
+                # prefixed with a "➢" bullet, with version numbers bold (using split_version_text)
                 paragraph_alignment = paragraph.alignment
                 paragraph_style = paragraph.style
-                
+
                 paragraph.clear()
                 if isinstance(value, list):
-                    for mitigation in value:
-                        # Support flat dict shape: {'recommendation': '...', 'versions': [...]}
+                    for m_idx, mitigation in enumerate(value):
+                        # Normalize details shape
                         details = None
                         if isinstance(mitigation, dict) and ('recommendation' in mitigation or 'versions' in mitigation):
                             details = mitigation
                         elif isinstance(mitigation, dict) and len(mitigation) == 1:
-                            # Nested product shape: {'Product': {'recommendation':..., 'versions':[...]} }
                             details = next(iter(mitigation.values()))
                         elif isinstance(mitigation, str):
-                            # Simple string mitigation
                             details = {'recommendation': mitigation, 'versions': []}
                         else:
-                            # Unhandled type, render as string line
+                            # Fallback to string render
                             rec_run = paragraph.add_run(str(mitigation))
-                            rec_run.font.bold = False
                             rec_run.font.name = "Arial"
                             rec_run.font.size = Pt(10)
                             paragraph.add_run('\n')
                             continue
 
-                        # Ensure dict structure
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
 
-                        # Add recommendation if present
-                        rec_text = details.get('recommendation') or ""
+                        # 1) Recommendation line
+                        rec_text = (details.get('recommendation') or '').strip()
                         if rec_text:
                             rec_run = paragraph.add_run(rec_text)
-                            rec_run.font.bold = False
                             rec_run.font.name = "Arial"
                             rec_run.font.size = Pt(10)
+                            rec_run.font.bold = False
                             paragraph.add_run('\n')
-                        
-                        # Add versions bullets
+
+                        # 2) Version lines with arrow bullet and bolded versions
                         versions = details.get('versions', []) or []
-                        for i, version in enumerate(versions):
-                            bullet_run = paragraph.add_run("     " + chr(216) + " ")
-                            bullet_run.font.name = "Wingdings"
-                            bullet_run.font.size = Pt(11)
+                        for v_idx, version in enumerate(versions):
+                            # Bullet "➢"
+                            bullet = paragraph.add_run("   ➢ ")
+                            bullet.font.name = "Arial"
+                            bullet.font.size = Pt(11)
+
+                            # Content with bolded version segments
                             parts = split_version_text(str(version))
                             for text_part, should_bold in parts:
                                 run = paragraph.add_run(text_part)
                                 run.font.name = "Arial"
                                 run.font.size = Pt(10)
                                 run.font.bold = should_bold
-                            if i < len(versions) - 1:
+
+                            # Newline after each version line
+                            if v_idx < len(versions) - 1:
                                 paragraph.add_run('\n')
-                        
-                        paragraph.paragraph_format.left_indent = Pt(20)
-                        paragraph.paragraph_format.line_spacing = 2 
-                            
+
+                        # Extra spacing between mitigation blocks when multiple entries
+                        if m_idx < len(value) - 1:
+                            paragraph.add_run('\n')
+
+                        # Layout tweaks
+                        paragraph.paragraph_format.left_indent = Pt(12)
+                        paragraph.paragraph_format.line_spacing = 1.6
+
                 # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
                 paragraph.style = paragraph_style
