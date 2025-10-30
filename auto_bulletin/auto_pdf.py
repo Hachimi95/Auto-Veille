@@ -6,7 +6,6 @@ from datetime import datetime
 from docx.shared import Pt
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor
@@ -14,7 +13,6 @@ import subprocess
 import platform
 import shutil
 import tempfile  # added
-from lxml import etree
 
 __all__ = ["generate_pdf_from_json", "generate_docx_from_json"]  # ensure import works
 
@@ -318,44 +316,6 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                     paragraph.paragraph_format.space_before = Pt(0)
                     paragraph.paragraph_format.space_after = Pt(1)
                     # NO left_indent here - it would affect everything including recommendation
-                elif isinstance(value, str):
-                    # Interpret first non-empty line as recommendation, rest as versions
-                    lines = [ln.strip() for ln in value.split('\n') if ln.strip()]
-                    rec_text = lines[0] if lines else ''
-                    versions = lines[1:] if len(lines) > 1 else []
-
-                    if rec_text:
-                        run = paragraph.add_run(rec_text)
-                        run.font.name = "Arial"
-                        run.font.size = Pt(10)
-                        run.font.bold = False
-                        if versions:
-                            paragraph.add_run('\n')
-
-                    for j, version in enumerate(versions):
-                        version_str = str(version).strip()
-                        if version_str:
-                            indent_run = paragraph.add_run("          ")
-                            indent_run.font.name = "Arial"
-                            indent_run.font.size = Pt(10)
-
-                            bullet_run = paragraph.add_run('· ')
-                            bullet_run.font.name = "Symbol"
-                            bullet_run.font.size = Pt(11)
-
-                            parts = split_version_text(version_str)
-                            for text_part, should_bold in parts:
-                                r = paragraph.add_run(text_part)
-                                r.font.name = "Arial"
-                                r.font.size = Pt(10)
-                                r.font.bold = should_bold
-
-                            if j < len(versions) - 1:
-                                paragraph.add_run('\n')
-
-                    paragraph.paragraph_format.line_spacing = 1.6
-                    paragraph.paragraph_format.space_before = Pt(0)
-                    paragraph.paragraph_format.space_after = Pt(1)
 
                 # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
