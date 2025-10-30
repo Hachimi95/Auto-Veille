@@ -352,6 +352,7 @@ GÉNÈRE MAINTENANT LE JSON:"""
 
         # Generate mitigation
         generated_mitigation = self.generate_mitigation(product, produits_affectés, old_mitigation)
+
         try:
             mitigation_dict = json.loads(generated_mitigation)
             

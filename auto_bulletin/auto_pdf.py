@@ -6,6 +6,7 @@ from datetime import datetime
 from docx.shared import Pt
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor
@@ -13,6 +14,7 @@ import subprocess
 import platform
 import shutil
 import tempfile  # added
+from lxml import etree
 
 __all__ = ["generate_pdf_from_json", "generate_docx_from_json"]  # ensure import works
 

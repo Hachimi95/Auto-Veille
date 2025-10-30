@@ -72,12 +72,22 @@ class CERTFRScraper:
 
         # Generate mitigations
         try:
-            mitigation_text = self.mitigation_handler.process_advisory(advisory)
-            # Store as plain text string (first line: recommendation; others: versions)
-            advisory['Mitigations'] = mitigation_text
+            mitigation_content = self.mitigation_handler.process_advisory(advisory)
+            try:
+                mitigation_obj = json.loads(mitigation_content)
+            except Exception:
+                mitigation_obj = {'Aucune mitigation': {'recommendation': str(mitigation_content), 'versions': []}}
+
+            # Normalize mitigation structure
+            from auto_bulletin.utils import normalize_mitigations
+            normalized = normalize_mitigations(mitigation_obj)
+            if not normalized:
+                advisory['Mitigations'] = [{'Aucune mitigation': {'recommendation': 'Aucune mitigation disponible', 'versions': []}}]
+            else:
+                advisory['Mitigations'] = normalized
         except Exception as e:
             print(f"Unexpected error in mitigation generation: {e}")
-            advisory['Mitigations'] = "Appliquer les correctifs de sécurité"
+            advisory['Mitigations'] = [{"description": "Erreur lors de la génération des mitigations"}]
 
         # After extracting CVEs
         if advisory['CVEs ID']:
