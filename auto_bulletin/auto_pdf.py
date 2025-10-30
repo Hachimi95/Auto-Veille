@@ -212,18 +212,10 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph_alignment = paragraph.alignment
                 paragraph_style = paragraph.style
 
-                # DEBUG: Check what we're receiving
-                print(f"\n=== MITIGATIONS DEBUG ===")
-                print(f"Type: {type(value)}")
-                print(f"Value: {value}")
-                print("=" * 50 + "\n")
-
                 paragraph.clear()
                 
                 if isinstance(value, list):
                     for i, mitigation in enumerate(value):
-                        print(f"Processing mitigation {i}: {mitigation}")
-                        
                         # Parse mitigation structure
                         details = None
                         
@@ -256,8 +248,6 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
                         
-                        print(f"Parsed details: {details}")
-                        
                         # Extract recommendation and versions
                         rec_text = (details.get('recommendation') or '').strip()
                         versions = details.get('versions', []) or []
@@ -265,8 +255,23 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         if not isinstance(versions, list):
                             versions = [versions]
                         
-                        print(f"Recommendation: '{rec_text}'")
-                        print(f"Versions: {versions}")
+                        # SPECIAL HANDLING: If versions is empty but recommendation contains version info
+                        # Split recommendation by newlines or common separators
+                        if not versions and rec_text:
+                            # Try to split by newline first
+                            lines = rec_text.split('\n')
+                            if len(lines) > 1:
+                                # First line is recommendation, rest are versions
+                                rec_text = lines[0].strip()
+                                versions = [line.strip() for line in lines[1:] if line.strip()]
+                            # If no newlines, check for patterns like "version: Firefox 144.0.2"
+                            elif ':' in rec_text:
+                                parts = rec_text.split(':', 1)
+                                if len(parts) == 2:
+                                    rec_text = parts[0].strip() + ':'
+                                    version_text = parts[1].strip()
+                                    if version_text:
+                                        versions = [version_text]
                         
                         # Add recommendation text (no bullet)
                         if rec_text:
