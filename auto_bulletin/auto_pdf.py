@@ -256,15 +256,11 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                             versions = [versions]
                         
                         # SPECIAL HANDLING: If versions is empty but recommendation contains version info
-                        # Split recommendation by newlines or common separators
                         if not versions and rec_text:
-                            # Try to split by newline first
                             lines = rec_text.split('\n')
                             if len(lines) > 1:
-                                # First line is recommendation, rest are versions
                                 rec_text = lines[0].strip()
                                 versions = [line.strip() for line in lines[1:] if line.strip()]
-                            # If no newlines, check for patterns like "version: Firefox 144.0.2"
                             elif ':' in rec_text:
                                 parts = rec_text.split(':', 1)
                                 if len(parts) == 2:
@@ -273,7 +269,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                     if version_text:
                                         versions = [version_text]
                         
-                        # Add recommendation text (no bullet)
+                        # Add recommendation text (no bullet, no indent)
                         if rec_text:
                             run = paragraph.add_run(rec_text)
                             run.font.name = "Arial"
@@ -284,10 +280,15 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                             if versions:
                                 paragraph.add_run('\n')
                         
-                        # Add versions with bullets (like Produits affectés)
+                        # Add versions with bullets and indent
                         for j, version in enumerate(versions):
                             version_str = str(version).strip()
                             if version_str:
+                                # Add indentation spaces before bullet
+                                indent_run = paragraph.add_run("          ")  # 10 spaces for indent
+                                indent_run.font.name = "Arial"
+                                indent_run.font.size = Pt(10)
+                                
                                 # Add bullet symbol (•)
                                 bullet_run = paragraph.add_run(chr(183) + "   ")
                                 bullet_run.font.name = "Symbol"
@@ -313,6 +314,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                     paragraph.paragraph_format.line_spacing = 1.6
                     paragraph.paragraph_format.space_before = Pt(0)
                     paragraph.paragraph_format.space_after = Pt(1)
+                    # NO left_indent here - it would affect everything including recommendation
 
                 # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
