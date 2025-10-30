@@ -212,10 +212,18 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph_alignment = paragraph.alignment
                 paragraph_style = paragraph.style
 
+                # DEBUG: Check what we're receiving
+                print(f"\n=== MITIGATIONS DEBUG ===")
+                print(f"Type: {type(value)}")
+                print(f"Value: {value}")
+                print("=" * 50 + "\n")
+
                 paragraph.clear()
                 
                 if isinstance(value, list):
                     for i, mitigation in enumerate(value):
+                        print(f"Processing mitigation {i}: {mitigation}")
+                        
                         # Parse mitigation structure
                         details = None
                         
@@ -248,6 +256,8 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
                         
+                        print(f"Parsed details: {details}")
+                        
                         # Extract recommendation and versions
                         rec_text = (details.get('recommendation') or '').strip()
                         versions = details.get('versions', []) or []
@@ -255,13 +265,19 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         if not isinstance(versions, list):
                             versions = [versions]
                         
+                        print(f"Recommendation: '{rec_text}'")
+                        print(f"Versions: {versions}")
+                        
                         # Add recommendation text (no bullet)
                         if rec_text:
                             run = paragraph.add_run(rec_text)
                             run.font.name = "Arial"
                             run.font.size = Pt(10)
                             run.font.bold = False
-                            paragraph.add_run('\n')
+                            
+                            # Only add newline if there are versions to follow
+                            if versions:
+                                paragraph.add_run('\n')
                         
                         # Add versions with bullets (like Produits affectés)
                         for j, version in enumerate(versions):
