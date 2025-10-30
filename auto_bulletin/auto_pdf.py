@@ -212,30 +212,17 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph_alignment = paragraph.alignment
                 paragraph_style = paragraph.style
 
-                # DEBUG: Print what we receive
-                print("\n" + "="*60)
-                print("DEBUG MITIGATION PLACEHOLDER")
-                print(f"Type of value: {type(value)}")
-                print(f"Value content: {json.dumps(value, ensure_ascii=False, indent=2) if isinstance(value, (dict, list)) else value}")
-                print("="*60 + "\n")
-
-                # Build lines to render: [(is_version, text), ...]
-                lines = []
+                paragraph.clear()
                 
                 if isinstance(value, list):
-                    for mitigation in value:
-                        print(f"Processing mitigation: {type(mitigation)} = {mitigation}")
-                        
-                        # Handle different mitigation formats
+                    for i, mitigation in enumerate(value):
+                        # Parse mitigation structure
                         details = None
                         
-                        # Case 1: mitigation is a string (already formatted JSON string)
                         if isinstance(mitigation, str):
                             try:
-                                # Try to parse as JSON
                                 parsed = json.loads(mitigation)
                                 if isinstance(parsed, dict):
-                                    # If it's a dict with a single product key
                                     if len(parsed) == 1:
                                         product_key = list(parsed.keys())[0]
                                         details = parsed[product_key]
@@ -244,253 +231,67 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                 else:
                                     details = {'recommendation': mitigation, 'versions': []}
                             except json.JSONDecodeError:
-                                # Not JSON, treat as plain text
                                 details = {'recommendation': mitigation, 'versions': []}
                         
-                        # Case 2: mitigation is a dict with product name as key
                         elif isinstance(mitigation, dict):
-                            # Check if it has 'recommendation' and 'versions' directly
                             if 'recommendation' in mitigation and 'versions' in mitigation:
                                 details = mitigation
-                            # Otherwise, assume first key is product name
                             elif len(mitigation) == 1:
                                 product_key = list(mitigation.keys())[0]
                                 details = mitigation[product_key]
                             else:
                                 details = mitigation
                         
-                        # Case 3: other types
                         else:
                             details = {'recommendation': str(mitigation), 'versions': []}
                         
-                        # Ensure details is a dict
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
-                        
-                        print(f"Extracted details: {details}")
                         
                         # Extract recommendation and versions
                         rec_text = (details.get('recommendation') or '').strip()
                         versions = details.get('versions', []) or []
                         
-                        # Ensure versions is a list
                         if not isinstance(versions, list):
                             versions = [versions]
                         
-                        print(f"Recommendation: '{rec_text}'")
-                        print(f"Versions ({len(versions)}): {versions}")
-                        
-                        # Add recommendation as a non-version line
+                        # Add recommendation text (no bullet)
                         if rec_text:
-                            lines.append((False, rec_text))
+                            run = paragraph.add_run(rec_text)
+                            run.font.name = "Arial"
+                            run.font.size = Pt(10)
+                            run.font.bold = False
+                            paragraph.add_run('\n')
                         
-                        # Add each version as a version line
-                        for version in versions:
+                        # Add versions with bullets (like Produits affectés)
+                        for j, version in enumerate(versions):
                             version_str = str(version).strip()
                             if version_str:
-                                lines.append((True, version_str))
-                
-                elif isinstance(value, str):
-                    # If value itself is a JSON string
-                    try:
-                        parsed = json.loads(value)
-                        if isinstance(parsed, list):
-                            # Recursively process as list
-                            value = parsed
-                            # Re-process
-                            for mitigation in value:
-                                if isinstance(mitigation, dict):
-                                    if len(mitigation) == 1:
-                                        product_key = list(mitigation.keys())[0]
-                                        details = mitigation[product_key]
-                                    else:
-                                        details = mitigation
-                                    
-                                    rec_text = (details.get('recommendation') or '').strip()
-                                    versions = details.get('versions', []) or []
-                                    
-                                    if rec_text:
-                                        lines.append((False, rec_text))
-                                    for version in versions:
-                                        lines.append((True, str(version).strip()))
-                        elif isinstance(parsed, dict):
-                            if len(parsed) == 1:
-                                product_key = list(parsed.keys())[0]
-                                details = parsed[product_key]
-                            else:
-                                details = parsed
-                            
-                            rec_text = (details.get('recommendation') or '').strip()
-                            versions = details.get('versions', []) or []
-                            
-                            if rec_text:
-                                lines.append((False, rec_text))
-                            for version in versions:
-                                lines.append((True, str(version).strip()))
-                    except json.JSONDecodeError:
-                        lines.append((False, value))
-                
-                print(f"\nFinal lines to render ({len(lines)}):")
-                for i, (is_ver, txt) in enumerate(lines):
-                    print(f"  {i}: {'VERSION' if is_ver else 'RECOMMENDATION'} = '{txt}'")
-                print()
-
-                # Find parent table cell (w:tc)
-                tc = None
-                parent = paragraph._element
-                while parent is not None:
-                    if parent.tag.endswith('tc'):
-                        tc = parent
-                        break
-                    parent = parent.getparent()
-
-                if tc is not None:
-                    print("Rendering inside table cell")
-                    
-                    # Remove all existing paragraphs in the cell
-                    for child in list(tc):
-                        if child.tag.endswith('p'):
-                            tc.remove(child)
-
-                    # Append each line as its own paragraph within the cell
-                    for is_version, text in lines:
-                        p = OxmlElement('w:p')
-                        pPr = OxmlElement('w:pPr')
+                                # Add bullet symbol (•)
+                                bullet_run = paragraph.add_run(chr(183) + "   ")
+                                bullet_run.font.name = "Symbol"
+                                bullet_run.font.size = Pt(11)
+                                
+                                # Process version text with version splitting for bold
+                                parts = split_version_text(version_str)
+                                for text_part, should_bold in parts:
+                                    run = paragraph.add_run(text_part)
+                                    run.font.name = "Arial"
+                                    run.font.size = Pt(10)
+                                    run.font.bold = should_bold
+                                
+                                # Add line break after each version (except the last one)
+                                if j < len(versions) - 1:
+                                    paragraph.add_run('\n')
                         
-                        # Set left indent
-                        ind = OxmlElement('w:ind')
-                        ind.set(qn('w:left'), '240')
-                        pPr.append(ind)
-                        
-                        # Set spacing
-                        spacing = OxmlElement('w:spacing')
-                        spacing.set(qn('w:after'), '120')
-                        spacing.set(qn('w:line'), '300')
-                        spacing.set(qn('w:lineRule'), 'auto')
-                        pPr.append(spacing)
-                        
-                        p.append(pPr)
-
-                        if is_version:
-                            # Add bullet character ➢
-                            r_bullet = OxmlElement('w:r')
-                            rPr_bullet = OxmlElement('w:rPr')
-                            
-                            # Font
-                            rFonts_bullet = OxmlElement('w:rFonts')
-                            rFonts_bullet.set(qn('w:ascii'), 'Arial')
-                            rFonts_bullet.set(qn('w:hAnsi'), 'Arial')
-                            rPr_bullet.append(rFonts_bullet)
-                            
-                            # Size
-                            sz_bullet = OxmlElement('w:sz')
-                            sz_bullet.set(qn('w:val'), '20')
-                            rPr_bullet.append(sz_bullet)
-                            
-                            r_bullet.append(rPr_bullet)
-                            
-                            t_bullet = OxmlElement('w:t')
-                            t_bullet.set(qn('xml:space'), 'preserve')
-                            t_bullet.text = '➢ '
-                            r_bullet.append(t_bullet)
-                            
-                            p.append(r_bullet)
-                            
-                            # Split version text and apply bold to version numbers
-                            parts = split_version_text(text)
-                            for part, should_bold in parts:
-                                r = OxmlElement('w:r')
-                                rPr = OxmlElement('w:rPr')
-                                
-                                # Font
-                                rFonts = OxmlElement('w:rFonts')
-                                rFonts.set(qn('w:ascii'), 'Arial')
-                                rFonts.set(qn('w:hAnsi'), 'Arial')
-                                rPr.append(rFonts)
-                                
-                                # Size
-                                sz = OxmlElement('w:sz')
-                                sz.set(qn('w:val'), '20')
-                                rPr.append(sz)
-                                
-                                # Bold if needed
-                                if should_bold:
-                                    b = OxmlElement('w:b')
-                                    rPr.append(b)
-                                
-                                r.append(rPr)
-                                
-                                t = OxmlElement('w:t')
-                                t.set(qn('xml:space'), 'preserve')
-                                t.text = part
-                                r.append(t)
-                                
-                                p.append(r)
-                        else:
-                            # Regular recommendation text (not bolded)
-                            r = OxmlElement('w:r')
-                            rPr = OxmlElement('w:rPr')
-                            
-                            # Font
-                            rFonts = OxmlElement('w:rFonts')
-                            rFonts.set(qn('w:ascii'), 'Arial')
-                            rFonts.set(qn('w:hAnsi'), 'Arial')
-                            rPr.append(rFonts)
-                            
-                            # Size
-                            sz = OxmlElement('w:sz')
-                            sz.set(qn('w:val'), '20')
-                            rPr.append(sz)
-                            
-                            r.append(rPr)
-                            
-                            t = OxmlElement('w:t')
-                            t.set(qn('xml:space'), 'preserve')
-                            t.text = text
-                            r.append(t)
-                            
-                            p.append(r)
-
-                        tc.append(p)
-
-                    # Clear placeholder paragraph content
-                    paragraph.clear()
-                else:
-                    print("Rendering as regular paragraph")
+                        # Add line break between different mitigations (except the last one)
+                        if i < len(value) - 1:
+                            paragraph.add_run('\n')
                     
-                    # Fallback: same-paragraph with explicit line breaks
-                    paragraph.clear()
-                    
-                    for idx, (is_version, text) in enumerate(lines):
-                        if is_version:
-                            # Add bullet
-                            run_bullet = paragraph.add_run('➢ ')
-                            run_bullet.font.name = 'Arial'
-                            run_bullet.font.size = Pt(10)
-                            
-                            # Split and add version text with bold for version numbers
-                            parts = split_version_text(text)
-                            for part, should_bold in parts:
-                                r = paragraph.add_run(part)
-                                r.font.name = 'Arial'
-                                r.font.size = Pt(10)
-                                r.font.bold = should_bold
-                        else:
-                            # Regular recommendation text
-                            r = paragraph.add_run(text)
-                            r.font.name = 'Arial'
-                            r.font.size = Pt(10)
-                            r.font.bold = False
-                        
-                        # Add line break after each line (except the last)
-                        if idx < len(lines) - 1:
-                            br = paragraph.add_run()
-                            br.add_break(WD_BREAK.LINE)
-                    
-                    # Set paragraph formatting
-                    paragraph.paragraph_format.left_indent = Pt(12)
-                    paragraph.paragraph_format.line_spacing = 1.3
-                    paragraph.paragraph_format.space_after = Pt(4)
+                    # Set paragraph formatting (same as Produits affectés)
+                    paragraph.paragraph_format.line_spacing = 1.6
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(1)
 
                 # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
