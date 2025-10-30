@@ -216,12 +216,12 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph_style = paragraph.style
 
                 paragraph.clear()
-
+                
                 if isinstance(value, list):
                     for i, mitigation in enumerate(value):
                         # Parse mitigation structure
                         details = None
-
+                        
                         if isinstance(mitigation, str):
                             try:
                                 parsed = json.loads(mitigation)
@@ -235,7 +235,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                     details = {'recommendation': mitigation, 'versions': []}
                             except json.JSONDecodeError:
                                 details = {'recommendation': mitigation, 'versions': []}
-
+                        
                         elif isinstance(mitigation, dict):
                             if 'recommendation' in mitigation and 'versions' in mitigation:
                                 details = mitigation
@@ -244,20 +244,20 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                 details = mitigation[product_key]
                             else:
                                 details = mitigation
-
+                        
                         else:
                             details = {'recommendation': str(mitigation), 'versions': []}
-
+                        
                         if not isinstance(details, dict):
                             details = {'recommendation': str(details), 'versions': []}
-
+                        
                         # Extract recommendation and versions
                         rec_text = (details.get('recommendation') or '').strip()
                         versions = details.get('versions', []) or []
-
+                        
                         if not isinstance(versions, list):
                             versions = [versions]
-
+                        
                         # SPECIAL HANDLING: If versions is empty but recommendation contains version info
                         if not versions and rec_text:
                             lines = rec_text.split('\n')
@@ -271,49 +271,88 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                     version_text = parts[1].strip()
                                     if version_text:
                                         versions = [version_text]
-
+                        
                         # Add recommendation text (no bullet, no indent)
                         if rec_text:
                             run = paragraph.add_run(rec_text)
                             run.font.name = "Arial"
                             run.font.size = Pt(10)
                             run.font.bold = False
-
-                        # Add versions with bullets and indent — FIXED PART
+                            
+                            # Only add newline if there are versions to follow
+                            if versions:
+                                paragraph.add_run('\n')
+                        
+                        # Add versions with bullets and indent
                         for j, version in enumerate(versions):
                             version_str = str(version).strip()
                             if version_str:
-                                # Create a new paragraph for each version
-                                version_paragraph = paragraph._parent.add_paragraph()
-
                                 # Add indentation spaces before bullet
-                                indent_run = version_paragraph.add_run("          ")  # 10 spaces
+                                indent_run = paragraph.add_run("          ")  # 10 spaces for indent
                                 indent_run.font.name = "Arial"
                                 indent_run.font.size = Pt(10)
-
+                                
                                 # Add bullet symbol (•)
-                                bullet_run = version_paragraph.add_run(chr(183) + "   ")
+                                bullet_run = paragraph.add_run(chr(183) + "   ")
                                 bullet_run.font.name = "Symbol"
                                 bullet_run.font.size = Pt(11)
-
+                                
                                 # Process version text with version splitting for bold
                                 parts = split_version_text(version_str)
                                 for text_part, should_bold in parts:
-                                    run = version_paragraph.add_run(text_part)
+                                    run = paragraph.add_run(text_part)
                                     run.font.name = "Arial"
                                     run.font.size = Pt(10)
                                     run.font.bold = should_bold
-
-                                # Format version paragraph
-                                version_paragraph.paragraph_format.line_spacing = 1.6
-                                version_paragraph.paragraph_format.space_before = Pt(0)
-                                version_paragraph.paragraph_format.space_after = Pt(0)
-
-                        # Add an empty line between mitigations (except the last one)
+                                
+                                # Add line break after each version (except the last one)
+                                if j < len(versions) - 1:
+                                    paragraph.add_run('\n')
+                        
+                        # Add line break between different mitigations (except the last one)
                         if i < len(value) - 1:
-                            paragraph._parent.add_paragraph()
+                            paragraph.add_run('\n')
+                    
+                    # Set paragraph formatting (same as Produits affectés)
+                    paragraph.paragraph_format.line_spacing = 1.6
+                    paragraph.paragraph_format.space_before = Pt(0)
+                    paragraph.paragraph_format.space_after = Pt(1)
+                    # NO left_indent here - it would affect everything including recommendation
+                elif isinstance(value, str):
+                    # Interpret first non-empty line as recommendation, rest as versions
+                    lines = [ln.strip() for ln in value.split('\n') if ln.strip()]
+                    rec_text = lines[0] if lines else ''
+                    versions = lines[1:] if len(lines) > 1 else []
 
-                    # Format main mitigation paragraph
+                    if rec_text:
+                        run = paragraph.add_run(rec_text)
+                        run.font.name = "Arial"
+                        run.font.size = Pt(10)
+                        run.font.bold = False
+                        if versions:
+                            paragraph.add_run('\n')
+
+                    for j, version in enumerate(versions):
+                        version_str = str(version).strip()
+                        if version_str:
+                            indent_run = paragraph.add_run("          ")
+                            indent_run.font.name = "Arial"
+                            indent_run.font.size = Pt(10)
+
+                            bullet_run = paragraph.add_run('· ')
+                            bullet_run.font.name = "Symbol"
+                            bullet_run.font.size = Pt(11)
+
+                            parts = split_version_text(version_str)
+                            for text_part, should_bold in parts:
+                                r = paragraph.add_run(text_part)
+                                r.font.name = "Arial"
+                                r.font.size = Pt(10)
+                                r.font.bold = should_bold
+
+                            if j < len(versions) - 1:
+                                paragraph.add_run('\n')
+
                     paragraph.paragraph_format.line_spacing = 1.6
                     paragraph.paragraph_format.space_before = Pt(0)
                     paragraph.paragraph_format.space_after = Pt(1)
@@ -321,7 +360,6 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 # Restore paragraph properties
                 paragraph.alignment = paragraph_alignment
                 paragraph.style = paragraph_style
-
             else:
                 # For other placeholders, replace directly and preserve formatting
                 original_text = original_text.replace(placeholder, str(value))

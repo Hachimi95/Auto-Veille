@@ -185,19 +185,8 @@ class DGSSIScraper:
                 data['Références'] = [link['href'] for link in reference.find_all('a')]
 
             # Generate mitigations
-            mitigation_result = self.mitigation_handler.process_advisory(data)
-            try:
-                mitigation_obj = json.loads(mitigation_result)
-            except Exception:
-                mitigation_obj = {'Aucune mitigation': {'recommendation': str(mitigation_result), 'versions': []}}
-
-            # Normalize mitigation structure to avoid raw JSON showing in UI
-            from auto_bulletin.utils import normalize_mitigations
-            normalized = normalize_mitigations(mitigation_obj)
-            if not normalized:
-                data['Mitigations'] = [{'Aucune mitigation': {'recommendation': 'Aucune mitigation disponible', 'versions': []}}]
-            else:
-                data['Mitigations'] = normalized
+            mitigation_text = self.mitigation_handler.process_advisory(data)
+            data['Mitigations'] = mitigation_text
 
 
             # Calculate CVSS score if CVEs are available
