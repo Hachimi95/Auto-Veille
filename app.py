@@ -928,22 +928,11 @@ def auto_bulletin():
 
                 if data:
                     data = _unify_mitigation_key(data)
-                    # Mitigations now expected as plain text string; if list/dict, flatten to text
+                    
                     if 'Mitigations' in data:
-                        raw_mit = data['Mitigations']
-                        if isinstance(raw_mit, list):
-                            # Join list entries into lines
-                            data['Mitigations'] = "\n".join([str(x).strip() for x in raw_mit if str(x).strip()])
-                        elif isinstance(raw_mit, dict):
-                            # Attempt to convert dict with keys recommendation/versions
-                            rec = str(raw_mit.get('recommendation', '')).strip()
-                            vers = raw_mit.get('versions', []) or []
-                            lines = [rec] if rec else []
-                            for v in vers:
-                                lines.append(str(v).strip())
-                            data['Mitigations'] = "\n".join(lines)
-                        else:
-                            data['Mitigations'] = str(raw_mit).strip()
+                        app.logger.info(f"Raw Mitigations: {data['Mitigations']}")
+                        data['Mitigations'] = normalize_mitigations(data['Mitigations'])
+                        app.logger.info(f"Normalized Mitigations: {data['Mitigations']}")
 
                     if 'confirm' in request.form:
                         # Final processing before DOCX/PDF generation
@@ -958,7 +947,14 @@ def auto_bulletin():
                         
                         mit_from_form = request.form.get('Mitigations', request.form.get('Mitigation', '')).strip()
                         if mit_from_form:
-                            data['Mitigations'] = mit_from_form
+                            data['Mitigations'] = normalize_mitigations(mit_from_form)
+                        else:
+                            hidden_struct = request.form.get('_Mitigations_struct', '')
+                            if hidden_struct:
+                                try:
+                                    data['Mitigations'] = normalize_mitigations(hidden_struct)
+                                except Exception:
+                                    app.logger.warning("Failed to parse _Mitigations_struct hidden field")
                         
                         pdf_path = None
                         word_path = None
@@ -1152,7 +1148,8 @@ def auto_bulletin():
                     else:
                         # Preview mode: show extracted data in the form
                         extracted_data = data
-                        # Keep Mitigations as plain text, no extra formatting here
+                        if 'Mitigations' in data:
+                            data['Mitigations'] = format_mitigation_for_display(data['Mitigations'])
                         # Fix string conversion for list fields
                         if 'CVEs ID' in data and isinstance(data['CVEs ID'], list):
                             data['CVEs ID'] = '\n'.join(data['CVEs ID'])
