@@ -62,8 +62,7 @@ class MitigationHandler:
             old_mitigation (Optional[Dict]): Previous mitigation data as reference example.
         
         Returns:
-            str: Generated mitigation text as plain text. First line is the recommendation,
-                 subsequent lines are version lines prefixed with "· ".
+            str: Generated mitigation text in JSON format.
         """
         if not old_mitigation:
             return json.dumps({
@@ -217,17 +216,7 @@ GÉNÈRE MAINTENANT LE JSON:"""
                         validated = self._validate_json(generated_text)
                         if validated:
                             print(f"Successfully generated mitigation with model: {model_name}")
-                            # Convert validated JSON to plain text format
-                            try:
-                                parsed = json.loads(validated)
-                                rec = parsed.get('recommendation', 'Appliquer les correctifs de sécurité')
-                                versions = parsed.get('versions', []) or []
-                                lines = [rec]
-                                for v in versions:
-                                    lines.append(f"· {v}")
-                                return "\n".join(lines)
-                            except Exception:
-                                return self._create_fallback_text(affected_versions, product)
+                            return validated
                         else:
                             print(f"Model {model_name} generated invalid JSON, trying next...")
                             continue
@@ -242,11 +231,11 @@ GÉNÈRE MAINTENANT LE JSON:"""
             
             # Fallback if all models fail
             print("All models failed, creating fallback mitigation")
-            return self._create_fallback_text(affected_versions, product)
+            return self._create_fallback(affected_versions)
             
         except Exception as e:
             print(f"Critical error: {str(e)}")
-            return self._create_fallback_text(affected_versions, product)
+            return self._create_fallback(affected_versions)
 
     def _validate_json(self, response: str) -> Optional[str]:
         """Validate and normalize JSON response."""
@@ -316,8 +305,8 @@ GÉNÈRE MAINTENANT LE JSON:"""
         print(f"All JSON candidates failed. Original response: '{response}'")
         return None
 
-    def _create_fallback_text(self, affected_versions: List[str], product: str) -> str:
-        """Create a fallback mitigation as plain text when generation fails."""
+    def _create_fallback(self, affected_versions: List[str]) -> str:
+        """Create a fallback mitigation when generation fails."""
         # Split any comma-separated versions
         clean_versions = []
         for v in affected_versions:
@@ -328,9 +317,11 @@ GÉNÈRE MAINTENANT LE JSON:"""
         
         if not clean_versions:
             clean_versions = ["Mettre à jour vers la dernière version sécurisée"]
-        rec = f"Mise à jour {product} vers la version:"
-        lines = [rec] + [f"· {v}" for v in clean_versions]
-        return "\n".join(lines)
+        
+        return json.dumps({
+            "recommendation": "Appliquer les correctifs de sécurité",
+            "versions": clean_versions
+        }, ensure_ascii=False)
 
     def process_advisory(self, advisory: Dict) -> str:
         """
@@ -340,7 +331,7 @@ GÉNÈRE MAINTENANT LE JSON:"""
             advisory (Dict): JSON object containing advisory details.
 
         Returns:
-            str: Generated mitigation as plain text.
+            str: Generated mitigation in JSON format.
         """
         titre = advisory.get("titre", "")
         produits_affectés = advisory.get("Produits affectés", [])
@@ -352,15 +343,29 @@ GÉNÈRE MAINTENANT LE JSON:"""
             return json.dumps({"error": "Advisory missing 'Produits affectés' field."})
 
         # Find matching product and mitigation
-    matching_mitigation = self.find_mitigation_by_title(titre)
+        matching_mitigation = self.find_mitigation_by_title(titre)
         if not matching_mitigation:
-            # Generic fallback
-            rec = "Appliquer les correctifs de sécurité"
-            return rec
+            return json.dumps({"error": f"Aucune mitigation disponible pour: {titre}"})
 
         product = matching_mitigation["Product"]
         old_mitigation = matching_mitigation["Mitigation"]
 
         # Generate mitigation
-        generated_text = self.generate_mitigation(product, produits_affectés, old_mitigation)
-        return generated_text
+        generated_mitigation = self.generate_mitigation(product, produits_affectés, old_mitigation)
+        try:
+            mitigation_dict = json.loads(generated_mitigation)
+            
+            return json.dumps({
+                product: {
+                    "recommendation": mitigation_dict.get("recommendation", ""),
+                    "versions": mitigation_dict.get("versions", [])
+                }
+            }, ensure_ascii=False, indent=2)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing failed: {e}")
+            return json.dumps({
+                product: {
+                    "recommendation": "Appliquer les correctifs de sécurité",
+                    "versions": ["Erreur de génération - Contacter l'équipe de sécurité"]
+                }
+            }, ensure_ascii=False, indent=2)
