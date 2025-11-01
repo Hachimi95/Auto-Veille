@@ -207,9 +207,6 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                 paragraph.alignment = paragraph_alignment
                 paragraph.style = paragraph_style
                 
-            # WORKAROUND: Handle wrapper format from normalize_mitigations()
-            # Data arrives as: [{'Mozilla': {'recommendation': '...', 'versions': []}}]
-            # with versions concatenated into recommendation string
             elif placeholder == '[Mitigations]':
                 # Store original paragraph properties
                 paragraph_alignment = paragraph.alignment
@@ -286,6 +283,8 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         # Add versions with bullets and indent
                         for j, version in enumerate(versions):
                             version_str = str(version).strip()
+                            print(version_str)
+                            print("zebi")
                             if version_str:
                                 # Add indentation spaces before bullet
                                 indent_run = paragraph.add_run("          ")  # 10 spaces for indent
@@ -299,6 +298,8 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                 
                                 # Process version text with version splitting for bold
                                 parts = split_version_text(version_str)
+                                print(parts)
+                                print("zebi")
                                 for text_part, should_bold in parts:
                                     run = paragraph.add_run(text_part)
                                     run.font.name = "Arial"
@@ -307,7 +308,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                 
                                 # Add line break after each version (except the last one)
                                 if j < len(versions) - 1:
-                                    paragraph.add_run().add_break()
+                                    paragraph.add_run('\n')
                         
                         # Add line break between different mitigations (except the last one)
                         if i < len(value) - 1:
