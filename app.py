@@ -85,17 +85,52 @@ def normalize_mitigations(raw):
     import json
     
     def clean_versions(v):
+        """Clean versions list without splitting - preserve structure"""
         if isinstance(v, str):
-            return [x.strip() for x in v.split(',') if x.strip()]
+            # Only split if it's explicitly comma-separated AND doesn't contain "ou ultérieure"
+            # This handles legacy data that was manually comma-separated
+            if ',' in v and 'ou ultérieure' not in v and 'or later' not in v:
+                return [x.strip() for x in v.split(',') if x.strip()]
+            # Otherwise, treat as single version
+            return [v.strip()] if v.strip() else []
+        
         if isinstance(v, list):
             cleaned = []
             for item in v:
-                if isinstance(item, str) and ',' in item:
-                    cleaned.extend([x.strip() for x in item.split(',') if x.strip()])
+                if isinstance(item, str):
+                    # Don't split items that are already properly formatted
+                    cleaned.append(item.strip())
                 else:
-                    cleaned.append(item.strip() if isinstance(item, str) else str(item).strip())
+                    cleaned.append(str(item).strip())
             return cleaned
         return []
+    
+    def extract_mitigation_dict(item):
+        """Extract recommendation and versions from various formats"""
+        if isinstance(item, dict):
+            # Check if it has recommendation and versions directly
+            if 'recommendation' in item or 'versions' in item:
+                rec = (item.get('recommendation') or '').strip()
+                vers = clean_versions(item.get('versions', []))
+                return {'recommendation': rec, 'versions': vers} if rec or vers else None
+            
+            # Handle wrapper format like {'Mozilla': {'recommendation': ..., 'versions': [...]}}
+            if len(item) == 1:
+                key = list(item.keys())[0]
+                inner = item[key]
+                if isinstance(inner, dict):
+                    rec = (inner.get('recommendation') or '').strip()
+                    vers = clean_versions(inner.get('versions', []))
+                    return {'recommendation': rec, 'versions': vers} if rec or vers else None
+            
+            # Fallback: treat entire dict as recommendation
+            rec = str(item).strip()
+            return {'recommendation': rec, 'versions': []} if rec else None
+        
+        elif isinstance(item, str) and item.strip():
+            return {'recommendation': item.strip(), 'versions': []}
+        
+        return None
     
     if raw is None or raw == '':
         return []
@@ -112,21 +147,16 @@ def normalize_mitigations(raw):
     
     # Single dict
     if isinstance(raw, dict):
-        rec = (raw.get('recommendation') or '').strip()
-        vers = clean_versions(raw.get('versions', []))
-        return [{'recommendation': rec, 'versions': vers}] if rec or vers else []
+        result = extract_mitigation_dict(raw)
+        return [result] if result else []
     
     # List input
     if isinstance(raw, list):
         out = []
         for item in raw:
-            if isinstance(item, dict):
-                rec = (item.get('recommendation') or '').strip()
-                vers = clean_versions(item.get('versions', []))
-                if rec or vers:
-                    out.append({'recommendation': rec, 'versions': vers})
-            elif isinstance(item, str) and item.strip():
-                out.append({'recommendation': item.strip(), 'versions': []})
+            result = extract_mitigation_dict(item)
+            if result:
+                out.append(result)
         return out
     
     # Fallback
