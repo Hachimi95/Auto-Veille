@@ -368,6 +368,69 @@ def add_product(name, client_id, responsible_resolution='SOC Team', version=None
     conn.commit()
     conn.close()
 
+def get_client_by_name(name):
+    """Return client row (id, name) or None"""
+    conn = sqlite3.connect('vuln_tracker.db')
+    c = conn.cursor()
+    c.execute('SELECT id, name FROM clients WHERE name = ?', (name,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def get_or_create_client(name):
+    """Return client_id; create client if it doesn't exist."""
+    row = get_client_by_name(name)
+    if row:
+        return row[0]
+    # Create and fetch
+    conn = sqlite3.connect('vuln_tracker.db')
+    c = conn.cursor()
+    try:
+        c.execute('INSERT OR IGNORE INTO clients (name) VALUES (?)', (name,))
+        conn.commit()
+    finally:
+        conn.close()
+    row2 = get_client_by_name(name)
+    return row2[0] if row2 else None
+
+def get_product_by_name_client(name, client_id):
+    """Return product row for a given client by product name or None."""
+    conn = sqlite3.connect('vuln_tracker.db')
+    c = conn.cursor()
+    c.execute('SELECT id, name, client_id, responsible_resolution, version, critisite FROM products WHERE name = ? AND client_id = ?', (name, client_id))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def upsert_product(name, client_id, responsible_resolution=None, version=None, critisite=None):
+    """Create or update a product for a client.
+
+    Merge semantics on update: non-empty values overwrite; empty/None keep existing.
+    """
+    existing = get_product_by_name_client(name, client_id)
+    if not existing:
+        # Normalize blanks to None; default responsible to 'SOC Team' if not provided
+        rr = (responsible_resolution or 'SOC Team').strip() if responsible_resolution is not None else 'SOC Team'
+        ver = version.strip() if isinstance(version, str) and version.strip() else None
+        cri = critisite.strip() if isinstance(critisite, str) and critisite.strip() else None
+        add_product(name, client_id, rr, ver, cri)
+        # Return a simple dict-like tuple (simulate select order)
+        return True, None  # (created=True, updated_id=None)
+    else:
+        prod_id, _pname, _cid, rr_old, ver_old, cri_old = existing
+        # Only overwrite when provided and non-empty
+        rr_new = rr_old
+        if isinstance(responsible_resolution, str) and responsible_resolution.strip():
+            rr_new = responsible_resolution.strip()
+        ver_new = ver_old
+        if isinstance(version, str) and version.strip():
+            ver_new = version.strip()
+        cri_new = cri_old
+        if isinstance(critisite, str) and critisite.strip():
+            cri_new = critisite.strip()
+        update_product(prod_id, name, client_id, rr_new or 'SOC Team', ver_new, cri_new)
+        return False, prod_id  # (created=False, updated_id)
+
 def get_products(client_id=None):
     conn = sqlite3.connect('vuln_tracker.db')
     conn.row_factory = None

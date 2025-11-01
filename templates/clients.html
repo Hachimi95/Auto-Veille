@@ -6,6 +6,17 @@
     <h2 style="color:var(--primary-color);margin:0;">Clients & Products Management</h2>
     <button class="btn primary-btn" onclick="showAddClientModal()">+ Add Client</button>
   </div>
+  <div style="margin: 0 0 16px 0; padding:12px; background:#f8f9fb; border:1px solid #e5e7eb; border-radius:10px;">
+    <form action="/clients/import_for_client" method="POST" enctype="multipart/form-data" style="display:grid; grid-template-columns: 1.2fr 1.6fr auto auto; gap:8px; align-items:center;">
+      <input type="text" name="client_name" placeholder="Client name" required style="padding:8px;border-radius:8px;border:1px solid #ddd;">
+      <input type="file" name="excel_file" accept=".xlsx,.xls" required style="padding:6px;border-radius:8px;border:1px solid #ddd;background:white;">
+      <a href="/clients/import_template" class="btn secondary-btn" style="text-align:center;">Download Template</a>
+      <button type="submit" class="btn primary-btn">Import</button>
+    </form>
+    <div style="font-size:0.85em; color:#666; margin-top:6px;">
+      Expected columns in Excel: <b>product</b>, <b>version</b>, <b>critisite</b>, <b>responsable</b>.
+    </div>
+  </div>
   <div class="table-responsive" style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;background:var(--card-bg);border-radius:var(--radius);box-shadow:0 2px 4px rgba(0,0,0,0.08);">
       <thead>
@@ -51,8 +62,15 @@
             </ul>
           </td>
           <td style="padding:10px 10px;text-align:center;">
-            <button class='btn secondary-btn' onclick='showEditClientModal({{ client.id }}, {{ client.name|tojson }}, {{ products|selectattr("client_id", "equalto", client.id)|list|tojson }})'>Edit</button>
-            <button class='btn delete-btn' onclick='showDeleteClientModal({{ client.id }}, {{ client.name|tojson }})'>Delete</button>
+            <button class='btn secondary-btn'
+                    onclick='invokeEdit(this)'
+                    data-client-id='{{ client.id }}'
+                    data-client-name='{{ client.name }}'
+                    data-products='{{ products|selectattr("client_id", "equalto", client.id)|list|tojson|e }}'>Edit</button>
+            <button class='btn delete-btn'
+                    onclick='invokeDelete(this)'
+                    data-client-id='{{ client.id }}'
+                    data-client-name='{{ client.name }}'>Delete</button>
           </td>
         </tr>
         {% endfor %}
@@ -122,6 +140,25 @@ function showAddClientModal() {
     await fetch('/clients', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
     hideModal(); location.reload();
   };
+}
+
+function invokeEdit(btn){
+  try {
+    const id = parseInt(btn.dataset.clientId, 10);
+    const name = btn.dataset.clientName;
+    const productsJson = btn.dataset.products || '[]';
+    const products = JSON.parse(productsJson);
+    showEditClientModal(id, name, products);
+  } catch (e) {
+    console.error('Failed to open edit modal', e);
+    showToast('Unable to open edit modal', 'error');
+  }
+}
+
+function invokeDelete(btn){
+  const id = parseInt(btn.dataset.clientId, 10);
+  const name = btn.dataset.clientName;
+  showDeleteClientModal(id, name);
 }
 
 function showEditClientModal(id, name, products) {

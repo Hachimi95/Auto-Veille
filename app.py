@@ -817,6 +817,89 @@ def clients_page():
     ]
     return render_template('clients.html', clients=clients, products=products)
 
+# Import template download (fixed 4 columns)
+@app.route('/clients/import_template', methods=['GET'])
+def download_clients_import_template():
+    try:
+        # Build empty DataFrame with required columns
+        df = pd.DataFrame(columns=['product', 'version', 'critisite', 'responsable'])
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Products')
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='products_import_template.xlsx'
+        )
+    except Exception as e:
+        return f"Error generating template: {str(e)}", 500
+
+# Import products for a given client from Excel (4 columns)
+@app.route('/clients/import_for_client', methods=['POST'])
+def import_products_for_client():
+    try:
+        client_name = request.form.get('client_name', '').strip()
+        file = request.files.get('excel_file')
+        if not client_name:
+            return redirect(url_for('clients_page'))
+        if not file or not file.filename.lower().endswith(('.xlsx', '.xls')):
+            return redirect(url_for('clients_page'))
+
+        # Ensure client exists
+        client_id = db.get_or_create_client(client_name)
+        if not client_id:
+            return redirect(url_for('clients_page'))
+
+        # Read Excel
+        df = pd.read_excel(file)
+        # Normalize column names
+        df.columns = [str(c).strip().lower() for c in df.columns]
+        # Map common variants to our keys
+        col_map = {
+            'product': 'product', 'produit': 'product', 'name': 'product',
+            'version': 'version',
+            'critisite': 'critisite', 'criticite': 'critisite', 'criticité': 'critisite',
+            'responsable': 'responsable', 'responsible': 'responsable', 'responsible_resolution': 'responsable'
+        }
+        norm_cols = {}
+        for c in df.columns:
+            key = col_map.get(c)
+            if key:
+                norm_cols[c] = key
+        df = df.rename(columns=norm_cols)
+
+        # Ensure required 'product' column exists
+        if 'product' not in df.columns:
+            return redirect(url_for('clients_page'))
+
+        created = 0
+        updated = 0
+        for _, row in df.iterrows():
+            name = str(row.get('product') or '').strip()
+            if not name:
+                continue
+            version = row.get('version')
+            critisite = row.get('critisite')
+            responsable = row.get('responsable')
+            # Convert NaN to None
+            version = None if (version is None or (isinstance(version, float) and pd.isna(version))) else str(version)
+            critisite = None if (critisite is None or (isinstance(critisite, float) and pd.isna(critisite))) else str(critisite)
+            responsable = None if (responsable is None or (isinstance(responsable, float) and pd.isna(responsable))) else str(responsable)
+
+            created_flag, _pid = db.upsert_product(name, client_id, responsable, version, critisite)
+            if created_flag:
+                created += 1
+            else:
+                updated += 1
+
+        return redirect(url_for('clients_page'))
+    except Exception:
+        # On any error, go back to page (logs will contain details)
+        app.logger.exception('Import products for client failed')
+        return redirect(url_for('clients_page'))
+
 # API endpoints for clients
 @app.route('/clients', methods=['POST'])
 def add_client():
