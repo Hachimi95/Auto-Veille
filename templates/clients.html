@@ -11,7 +11,10 @@
       <thead>
         <tr style="background:var(--primary-color);color:#fff;">
           <th style="padding:12px 10px;text-align:left;">Client</th>
-          <th style="padding:12px 10px;text-align:left;">Products & Responsible Resolution</th>
+          <th style="padding:12px 10px;text-align:left;">Products</th>
+          <th style="padding:12px 10px;text-align:left;">Version</th>
+          <th style="padding:12px 10px;text-align:left;">Criticité</th>
+          <th style="padding:12px 10px;text-align:left;">Responsible Resolution</th>
           <th style="padding:12px 10px;text-align:center;width:160px;">Actions</th>
         </tr>
       </thead>
@@ -19,21 +22,37 @@
         {% for client in clients %}
         <tr style="border-bottom:1px solid #eee;">
           <td style="padding:10px 10px;font-weight:600;">{{ client.name }}</td>
-          <td style="padding:10px 10px;">
+          <td style="padding:10px 10px;vertical-align:top;">
             <ul style="margin:0;padding-left:18px;list-style:square;color:var(--secondary-color);">
               {% for product in products if product.client_id == client.id %}
-                <li style="margin-bottom:4px;">
-                  <strong>{{ product.name }}</strong>
-                  {% if product.responsible_resolution %}
-                    <span style="color:#666;font-size:0.9em;"> - {{ product.responsible_resolution }}</span>
-                  {% endif %}
-                </li>
+                <li style="margin-bottom:4px;"><strong>{{ product.name }}</strong></li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td style="padding:10px 10px;vertical-align:top;">
+            <ul style="margin:0;padding-left:18px;list-style:none;color:#444;">
+              {% for product in products if product.client_id == client.id %}
+                <li style="margin-bottom:4px;">{{ product.version or '-' }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td style="padding:10px 10px;vertical-align:top;">
+            <ul style="margin:0;padding-left:18px;list-style:none;color:#444;">
+              {% for product in products if product.client_id == client.id %}
+                <li style="margin-bottom:4px;">{{ product.critisite or '-' }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td style="padding:10px 10px;vertical-align:top;">
+            <ul style="margin:0;padding-left:18px;list-style:none;color:#444;">
+              {% for product in products if product.client_id == client.id %}
+                <li style="margin-bottom:4px;">{{ product.responsible_resolution or 'SOC Team' }}</li>
               {% endfor %}
             </ul>
           </td>
           <td style="padding:10px 10px;text-align:center;">
-            <button class='btn secondary-btn' onclick='showEditClientModal({{ client.id }}, {{ client.name|tojson }}, {{ products|selectattr("client_id", "equalto", client.id)|list|tojson }})'>Edit</button>
-            <button class='btn delete-btn' onclick='showDeleteClientModal({{ client.id }}, {{ client.name|tojson }})'>Delete</button>
+            <button class='btn secondary-btn' onclick="showEditClientModal({{ client.id }}, {{ client.name|tojson }}, {{ products|selectattr('client_id', 'equalto', client.id)|list|tojson }})">Edit</button>
+            <button class='btn delete-btn' onclick="showDeleteClientModal({{ client.id }}, {{ client.name|tojson }})">Delete</button>
           </td>
         </tr>
         {% endfor %}
@@ -109,9 +128,11 @@ function showEditClientModal(id, name, products) {
   let productInputs = '';
   if (products && products.length) {
     productInputs = products.map(p => `
-      <div style='display:flex;align-items:center;gap:8px;margin-bottom:8px;'>
-        <input type='text' name='product_name' data-product-id='${p.id}' value='${p.name}' placeholder='Product name' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
-        <input type='text' name='responsible_resolution' data-product-id='${p.id}' value='${p.responsible_resolution || "SOC Team"}' placeholder='Responsible Resolution' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
+      <div style='display:grid;grid-template-columns:2fr 1fr 1fr 1.5fr auto;gap:8px;align-items:center;margin-bottom:8px;'>
+        <input type='text' name='product_name' data-product-id='${p.id}' value='${p.name}' placeholder='Product name' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
+        <input type='text' name='product_version' data-product-id='${p.id}' value='${p.version || ''}' placeholder='Version' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
+        <input type='text' name='product_critisite' data-product-id='${p.id}' value='${p.critisite || ''}' placeholder='Criticité' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
+        <input type='text' name='responsible_resolution' data-product-id='${p.id}' value='${p.responsible_resolution || "SOC Team"}' placeholder='Responsible Resolution' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
         <button type='button' class='btn delete-btn' style='padding:4px 10px;font-size:0.95em;' onclick='deleteProductFromEdit(${p.id}, this)'>Delete</button>
       </div>
     `).join('');
@@ -122,7 +143,7 @@ function showEditClientModal(id, name, products) {
       <form id='edit-client-form' style='display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow:auto;padding-right:4px;'>
         <input name='name' value='${name}' required style='padding:10px;border-radius:10px;border:1px solid #ddd;'>
         <div id='products-list' style='margin-bottom:4px;'>
-          <label style='font-weight:600;margin-bottom:6px;display:block;'>Products & Responsible Resolution:</label>
+          <label style='font-weight:600;margin-bottom:6px;display:block;'>Products, Version, Criticité & Responsible Resolution:</label>
           ${productInputs}
         </div>
         <div style='display:flex;gap:8px;justify-content:flex-end;align-items:center;'>
@@ -139,17 +160,28 @@ function showEditClientModal(id, name, products) {
     if (!newName) return showToast('Client name required', 'error');
     await fetch(`/clients/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName})});
     // Update products
-    const productInputs = this.querySelectorAll('input[name="product_name"]');
-    for (const input of productInputs) {
-      const prodId = input.getAttribute('data-product-id');
-      const prodName = input.value.trim();
-      const responsibleInput = input.parentElement.querySelector('input[name="responsible_resolution"]');
+    const productNameInputs = this.querySelectorAll('input[name="product_name"]');
+    for (const nameInput of productNameInputs) {
+      const wrapper = nameInput.parentElement;
+      const prodId = nameInput.getAttribute('data-product-id');
+      const prodName = nameInput.value.trim();
+      const versionInput = wrapper.querySelector('input[name="product_version"]');
+      const critisiteInput = wrapper.querySelector('input[name="product_critisite"]');
+      const responsibleInput = wrapper.querySelector('input[name="responsible_resolution"]');
       const responsibleResolution = responsibleInput ? responsibleInput.value.trim() : 'SOC Team';
-      
+
+      const payload = {
+        name: prodName,
+        client_id: id,
+        responsible_resolution: responsibleResolution,
+        version: versionInput ? versionInput.value.trim() : null,
+        critisite: critisiteInput ? critisiteInput.value.trim() : null
+      };
+
       if (prodId && prodName) {
-        await fetch(`/products/${prodId}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:prodName,client_id:id,responsible_resolution:responsibleResolution})});
+        await fetch(`/products/${prodId}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       } else if (!prodId && prodName) {
-        await fetch('/products', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:prodName,client_id:id,responsible_resolution:responsibleResolution})});
+        await fetch('/products', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       }
     }
     hideModal(); location.reload();
@@ -159,13 +191,16 @@ function showEditClientModal(id, name, products) {
 function addProductInput() {
   const productsList = document.getElementById('products-list');
   const div = document.createElement('div');
-  div.style.display = 'flex';
+  div.style.display = 'grid';
+  div.style.gridTemplateColumns = '2fr 1fr 1fr 1.5fr auto';
   div.style.alignItems = 'center';
   div.style.gap = '8px';
   div.style.marginBottom = '8px';
   div.innerHTML = `
-    <input type='text' name='product_name' placeholder='Product name' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
-    <input type='text' name='responsible_resolution' placeholder='Responsible Resolution' value='SOC Team' style='flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;'>
+    <input type='text' name='product_name' placeholder='Product name' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
+    <input type='text' name='product_version' placeholder='Version' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
+    <input type='text' name='product_critisite' placeholder='Criticité' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
+    <input type='text' name='responsible_resolution' placeholder='Responsible Resolution' value='SOC Team' style='padding:8px;border-radius:8px;border:1px solid #ddd;'>
     <button type='button' class='btn delete-btn' style='padding:4px 10px;font-size:0.95em;' onclick='this.parentElement.remove()'>Delete</button>
   `;
   productsList.appendChild(div);
@@ -189,15 +224,21 @@ function confirmDeleteClient(id) {
 function showAddProductModal(clientId, clientName) {
   showModal(`<h3 style='margin-bottom:1rem;color:var(--primary-color);'>Add Product to ${clientName}</h3><form id='add-product-form' style='display:flex;flex-direction:column;gap:14px;'>
     <input name='name' placeholder='Product name' required style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
+    <div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;'>
+      <input name='version' placeholder='Version' style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
+      <input name='critisite' placeholder='Criticité' style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
+    </div>
     <input name='responsible_resolution' placeholder='Responsible Resolution' value='SOC Team' style='padding:10px;border-radius:var(--radius);border:1px solid #ddd;'>
     <button class='btn primary-btn' type='submit'>Add</button>
   </form>`);
   document.getElementById('add-product-form').onsubmit = async function(e) {
     e.preventDefault();
     const name = this.name.value.trim();
+    const version = (this.version && this.version.value.trim()) || null;
+    const critisite = (this.critisite && this.critisite.value.trim()) || null;
     const responsible_resolution = this.responsible_resolution.value.trim() || 'SOC Team';
     if (!name) return showToast('Product name required', 'error');
-    await fetch('/products', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,client_id:clientId,responsible_resolution})});
+    await fetch('/products', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,client_id:clientId,responsible_resolution,version,critisite})});
     hideModal(); location.reload();
   };
 }

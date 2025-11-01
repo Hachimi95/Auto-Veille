@@ -255,7 +255,8 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         if not isinstance(versions, list):
                             versions = [versions]
                         
-                        # WORKAROUND: Handle legacy data where versions are in recommendation string
+                        # WORKAROUND: Handle wrapper format from normalize_mitigations()
+                        # Data arrives with versions concatenated into recommendation string
                         if not versions and rec_text:
                             lines = rec_text.split('\n')
                             if len(lines) > 1:
@@ -269,7 +270,59 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                     if version_text:
                                         versions = [version_text]
                         
-                        # No splitting logic needed - versions should already be properly formatted as list
+                        # GENERAL FIX: Split concatenated versions into separate items
+                        # Handles cases where multiple versions are in one string
+                        expanded_versions = []
+                        for version in versions:
+                            version_str = str(version).strip()
+                            if not version_str:
+                                continue
+                            
+                            # Check if string contains multiple versions by looking for repeated patterns
+                            # Pattern 1: Multiple "ou ultérieure" or "or later" occurrences
+                            import re
+                            
+                            # Count occurrences of version ending phrases
+                            ou_count = version_str.count('ou ultérieure')
+                            or_count = version_str.count('or later')
+                            
+                            if ou_count > 1 or or_count > 1:
+                                # Split by the version ending phrase, keeping the phrase with each part
+                                if ou_count > 1:
+                                    # Split and keep "ou ultérieure" with each part
+                                    parts = re.split(r'(ou ultérieure)', version_str)
+                                    temp_version = ""
+                                    for part in parts:
+                                        if part == 'ou ultérieure':
+                                            temp_version += part
+                                            if temp_version.strip():
+                                                expanded_versions.append(temp_version.strip())
+                                            temp_version = ""
+                                        else:
+                                            temp_version += part
+                                    if temp_version.strip():
+                                        expanded_versions.append(temp_version.strip())
+                                elif or_count > 1:
+                                    # Split and keep "or later" with each part
+                                    parts = re.split(r'(or later)', version_str)
+                                    temp_version = ""
+                                    for part in parts:
+                                        if part == 'or later':
+                                            temp_version += part
+                                            if temp_version.strip():
+                                                expanded_versions.append(temp_version.strip())
+                                            temp_version = ""
+                                        else:
+                                            temp_version += part
+                                    if temp_version.strip():
+                                        expanded_versions.append(temp_version.strip())
+                            else:
+                                # No multiple versions detected, keep as is
+                                expanded_versions.append(version_str)
+                        
+                        versions = expanded_versions if expanded_versions else versions
+                        
+                        print(f"DEBUG: Expanded versions = {versions}")
                         
                         # Add recommendation text (no bullet, no indent)
                         if rec_text:
@@ -285,6 +338,7 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                         # Add versions with bullets and indent
                         for j, version in enumerate(versions):
                             version_str = str(version).strip()
+                            print(f"DEBUG: Processing version {j}: '{version_str}'")
                             
                             if version_str:
                                 # Add indentation spaces before bullet

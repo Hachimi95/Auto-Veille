@@ -58,6 +58,12 @@ root_logger.addHandler(file_handler)
 
 app.logger.setLevel(logging.INFO)
 
+# Ensure DB schema is up to date (adds products.version and products.critisite if missing)
+try:
+    db.create_clients_products_tables()
+except Exception as _db_init_err:
+    app.logger.warning(f"DB schema init skipped/failed: {_db_init_err}")
+
 @app.route('/_health')
 def _health():
     return jsonify(ok=True), 200
@@ -798,7 +804,17 @@ def clients_page():
     products = db.get_products()
     # Convert sqlite3.Row to dict for Jinja
     clients = [dict(id=row[0], name=row[1]) for row in clients]
-    products = [dict(id=row[0], name=row[1], client_id=row[2], responsible_resolution=row[3] if len(row) > 3 else 'SOC Team') for row in products]
+    products = [
+        dict(
+            id=row[0],
+            name=row[1],
+            client_id=row[2],
+            responsible_resolution=row[3] if len(row) > 3 else 'SOC Team',
+            version=row[4] if len(row) > 4 else None,
+            critisite=row[5] if len(row) > 5 else None,
+        )
+        for row in products
+    ]
     return render_template('clients.html', clients=clients, products=products)
 
 # API endpoints for clients
@@ -824,14 +840,18 @@ def delete_client(client_id):
 def add_product():
     data = request.get_json()
     responsible_resolution = data.get('responsible_resolution', 'SOC Team')
-    db.add_product(data['name'], data['client_id'], responsible_resolution)
+    version = data.get('version')
+    critisite = data.get('critisite')
+    db.add_product(data['name'], data['client_id'], responsible_resolution, version, critisite)
     return '', 204
 
 @app.route('/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
     data = request.get_json()
     responsible_resolution = data.get('responsible_resolution', 'SOC Team')
-    db.update_product(product_id, data['name'], data['client_id'], responsible_resolution)
+    version = data.get('version')
+    critisite = data.get('critisite')
+    db.update_product(product_id, data['name'], data['client_id'], responsible_resolution, version, critisite)
     return '', 204
 
 @app.route('/products/<int:product_id>', methods=['DELETE'])

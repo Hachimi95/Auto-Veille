@@ -308,15 +308,24 @@ def create_clients_products_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             client_id INTEGER,
+            version TEXT,
+            critisite TEXT,
             responsible_resolution TEXT DEFAULT 'SOC Team',
             FOREIGN KEY (client_id) REFERENCES clients(id)
         )
     ''')
-    # Add responsible_resolution column to existing products table if it doesn't exist
+    # Add missing columns to existing products table if they don't exist
     try:
         c.execute('ALTER TABLE products ADD COLUMN responsible_resolution TEXT DEFAULT "SOC Team"')
     except sqlite3.OperationalError:
-        # Column already exists
+        pass
+    try:
+        c.execute('ALTER TABLE products ADD COLUMN version TEXT')
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute('ALTER TABLE products ADD COLUMN critisite TEXT')
+    except sqlite3.OperationalError:
         pass
     conn.commit()
     conn.close()
@@ -352,28 +361,29 @@ def delete_client(client_id):
     conn.close()
 
 # CRUD for products
-def add_product(name, client_id, responsible_resolution='SOC Team'):
+def add_product(name, client_id, responsible_resolution='SOC Team', version=None, critisite=None):
     conn = sqlite3.connect('vuln_tracker.db')
     c = conn.cursor()
-    c.execute('INSERT INTO products (name, client_id, responsible_resolution) VALUES (?, ?, ?)', (name, client_id, responsible_resolution))
+    c.execute('INSERT INTO products (name, client_id, responsible_resolution, version, critisite) VALUES (?, ?, ?, ?, ?)', (name, client_id, responsible_resolution, version, critisite))
     conn.commit()
     conn.close()
 
 def get_products(client_id=None):
     conn = sqlite3.connect('vuln_tracker.db')
+    conn.row_factory = None
     c = conn.cursor()
     if client_id:
-        c.execute('SELECT * FROM products WHERE client_id = ?', (client_id,))
+        c.execute('SELECT id, name, client_id, responsible_resolution, version, critisite FROM products WHERE client_id = ?', (client_id,))
     else:
-        c.execute('SELECT * FROM products')
+        c.execute('SELECT id, name, client_id, responsible_resolution, version, critisite FROM products')
     products = c.fetchall()
     conn.close()
     return products
 
-def update_product(product_id, name, client_id, responsible_resolution='SOC Team'):
+def update_product(product_id, name, client_id, responsible_resolution='SOC Team', version=None, critisite=None):
     conn = sqlite3.connect('vuln_tracker.db')
     c = conn.cursor()
-    c.execute('UPDATE products SET name = ?, client_id = ?, responsible_resolution = ? WHERE id = ?', (name, client_id, responsible_resolution, product_id))
+    c.execute('UPDATE products SET name = ?, client_id = ?, responsible_resolution = ?, version = ?, critisite = ? WHERE id = ?', (name, client_id, responsible_resolution, version, critisite, product_id))
     conn.commit()
     conn.close()
 
