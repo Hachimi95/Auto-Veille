@@ -4,17 +4,9 @@
 <section class="container" style="max-width:900px;margin:0 auto; padding:2rem; background:var(--card-bg); border-radius:var(--radius); box-shadow:0 2px 4px rgba(0,0,0,0.1);">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
     <h2 style="color:var(--primary-color);margin:0;">Clients & Products Management</h2>
-    <button class="btn primary-btn" onclick="showAddClientModal()">+ Add Client</button>
-  </div>
-  <div style="margin: 0 0 16px 0; padding:12px; background:#f8f9fb; border:1px solid #e5e7eb; border-radius:10px;">
-    <form action="/clients/import_for_client" method="POST" enctype="multipart/form-data" style="display:grid; grid-template-columns: 1.2fr 1.6fr auto auto; gap:8px; align-items:center;">
-      <input type="text" name="client_name" placeholder="Client name" required style="padding:8px;border-radius:8px;border:1px solid #ddd;">
-      <input type="file" name="excel_file" accept=".xlsx,.xls" required style="padding:6px;border-radius:8px;border:1px solid #ddd;background:white;">
-      <a href="/clients/import_template" class="btn secondary-btn" style="text-align:center;">Download Template</a>
-      <button type="submit" class="btn primary-btn">Import</button>
-    </form>
-    <div style="font-size:0.85em; color:#666; margin-top:6px;">
-      Expected columns in Excel: <b>product</b>, <b>version</b>, <b>critisite</b>, <b>responsable</b>.
+    <div style="display:flex; gap:8px;">
+      <button class="btn secondary-btn" onclick="showImportModal()">Import</button>
+      <button class="btn primary-btn" onclick="showAddClientModal()">+ Add Client</button>
     </div>
   </div>
   <div class="table-responsive" style="overflow-x:auto;">
@@ -140,6 +132,24 @@ function showAddClientModal() {
     await fetch('/clients', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
     hideModal(); location.reload();
   };
+}
+
+function showImportModal(){
+  const html = `
+    <div style='max-width:520px'>
+      <h3 style='margin:0 0 12px 0;color:var(--primary-color);font-size:1.2em;'>Import Products for Client</h3>
+      <form action='/clients/import_for_client' method='POST' enctype='multipart/form-data' style='display:flex;flex-direction:column;gap:12px;'>
+        <input type='text' name='client_name' placeholder='Client name' required style='padding:10px;border-radius:10px;border:1px solid #ddd;'>
+        <input type='file' name='excel_file' accept='.xlsx,.xls' required style='padding:10px;border-radius:10px;border:1px solid #ddd;background:white;'>
+        <div style='font-size:0.85em;color:#666;'>Expected Excel columns: <b>product</b>, <b>version</b>, <b>critisite</b>, <b>responsable</b>.</div>
+        <div style='display:flex;gap:8px;justify-content:flex-end;'>
+          <button type='button' class='btn secondary-btn' onclick='hideModal()'>Cancel</button>
+          <button type='submit' class='btn primary-btn'>Import</button>
+        </div>
+      </form>
+    </div>
+  `;
+  showModal(html);
 }
 
 function invokeEdit(btn){

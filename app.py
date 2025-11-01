@@ -817,25 +817,6 @@ def clients_page():
     ]
     return render_template('clients.html', clients=clients, products=products)
 
-# Import template download (fixed 4 columns)
-@app.route('/clients/import_template', methods=['GET'])
-def download_clients_import_template():
-    try:
-        # Build empty DataFrame with required columns
-        df = pd.DataFrame(columns=['product', 'version', 'critisite', 'responsable'])
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Products')
-        output.seek(0)
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name='products_import_template.xlsx'
-        )
-    except Exception as e:
-        return f"Error generating template: {str(e)}", 500
-
 # Import products for a given client from Excel (4 columns)
 @app.route('/clients/import_for_client', methods=['POST'])
 def import_products_for_client():
