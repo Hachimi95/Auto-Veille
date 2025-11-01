@@ -307,11 +307,11 @@ def replace_placeholders_in_paragraph(paragraph, placeholders):
                                 
                                 # Add line break after each version (except the last one)
                                 if j < len(versions) - 1:
-                                    paragraph.add_run('\n')
+                                    paragraph.add_run().add_break()
                         
                         # Add line break between different mitigations (except the last one)
                         if i < len(value) - 1:
-                            paragraph.add_run('\n')
+                            paragraph.add_run().add_break()
                     
                     # Set paragraph formatting (same as Produits affectés)
                     paragraph.paragraph_format.line_spacing = 1.6
