@@ -51,8 +51,8 @@
             </ul>
           </td>
           <td style="padding:10px 10px;text-align:center;">
-            <button class='btn secondary-btn' onclick="showEditClientModal({{ client.id }}, {{ client.name|tojson }}, {{ products|selectattr('client_id', 'equalto', client.id)|list|tojson }})">Edit</button>
-            <button class='btn delete-btn' onclick="showDeleteClientModal({{ client.id }}, {{ client.name|tojson }})">Delete</button>
+            <button class='btn secondary-btn' onclick='showEditClientModal({{ client.id }}, {{ client.name|tojson }}, {{ products|selectattr("client_id", "equalto", client.id)|list|tojson }})'>Edit</button>
+            <button class='btn delete-btn' onclick='showDeleteClientModal({{ client.id }}, {{ client.name|tojson }})'>Delete</button>
           </td>
         </tr>
         {% endfor %}
