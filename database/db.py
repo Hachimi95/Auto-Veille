@@ -372,11 +372,31 @@ def get_products(client_id=None):
     conn = sqlite3.connect('vuln_tracker.db')
     conn.row_factory = None
     c = conn.cursor()
-    if client_id:
-        c.execute('SELECT id, name, client_id, responsible_resolution, version, critisite FROM products WHERE client_id = ?', (client_id,))
-    else:
-        c.execute('SELECT id, name, client_id, responsible_resolution, version, critisite FROM products')
-    products = c.fetchall()
+
+    def fetch_with_columns(cols):
+        base = f"SELECT {', '.join(cols)} FROM products"
+        if client_id:
+            base += " WHERE client_id = ?"
+            c.execute(base, (client_id,))
+        else:
+            c.execute(base)
+        return c.fetchall()
+
+    # Preferred columns order
+    preferred_cols = ['id', 'name', 'client_id', 'responsible_resolution', 'version', 'critisite']
+
+    try:
+        products = fetch_with_columns(preferred_cols)
+    except sqlite3.OperationalError:
+        # Attempt to migrate schema, then retry
+        try:
+            create_clients_products_tables()
+            products = fetch_with_columns(preferred_cols)
+        except sqlite3.OperationalError:
+            # Fallback to legacy columns (before version/critisite existed)
+            legacy_cols = ['id', 'name', 'client_id', 'responsible_resolution']
+            products = fetch_with_columns(legacy_cols)
+
     conn.close()
     return products
 
