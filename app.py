@@ -1072,23 +1072,62 @@ def auto_bulletin():
                         
                         pdf_path = None
                         word_path = None
-                        
-                        # Generate files
+                        pdf_bytes = None
+                        docx_bytes = None
+                        pdf_name = None
+                        docx_name = None
+
+                        # Generate files (in-memory if possible)
                         with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp_json:
-                            import json
+                            import json, zipfile
                             json.dump(data, tmp_json, ensure_ascii=False, indent=4)
                             tmp_json.flush()
                             try:
-                                pdf_path = generate_pdf_from_json(tmp_json.name, bulletin_id)
-                                word_path = pdf_path.replace('.pdf', '.docx')
-                                app.logger.info(f"Generated PDF: {pdf_path}")
+                                # Request bytes (no persistent files)
+                                result = generate_pdf_from_json(tmp_json.name, bulletin_id, return_bytes=True)
+                                if isinstance(result, dict):
+                                    pdf_bytes = result.get('pdf_bytes')
+                                    pdf_name = result.get('pdf_name')
+                                    docx_bytes = result.get('docx_bytes')
+                                    docx_name = result.get('docx_name')
+                                    if pdf_bytes:
+                                        app.logger.info(f"Generated PDF in-memory: {pdf_name}")
+                                    if docx_bytes:
+                                        app.logger.info(f"Generated DOCX in-memory: {docx_name}")
+                                else:
+                                    # Legacy: result is a path
+                                    pdf_path = result
+                                    word_path = pdf_path.replace('.pdf', '.docx')
+                                    if os.path.exists(pdf_path):
+                                        with open(pdf_path, 'rb') as f:
+                                            pdf_bytes = f.read()
+                                        pdf_name = os.path.basename(pdf_path)
+                                    if os.path.exists(word_path):
+                                        with open(word_path, 'rb') as f:
+                                            docx_bytes = f.read()
+                                        docx_name = os.path.basename(word_path)
+                                    app.logger.info(f"Generated PDF files on disk: {pdf_path}")
                             except Exception as e:
                                 app.logger.warning(f"PDF generation failed, attempting DOCX only: {e}")
                                 try:
                                     from auto_bulletin.auto_pdf import generate_docx_from_json
-                                    word_path = generate_docx_from_json(tmp_json.name, bulletin_id)
-                                    extraction_error = "PDF non généré (LibreOffice manquant). DOCX disponible au téléchargement."
-                                    app.logger.info(f"Generated DOCX (fallback): {word_path}")
+                                    # generate docx in tempdir and return path
+                                    tmpdir = tempfile.mkdtemp(prefix='auto_bulletin_')
+                                    try:
+                                        word_path = generate_docx_from_json(tmp_json.name, bulletin_id, out_dir=tmpdir)
+                                        if os.path.exists(word_path):
+                                            with open(word_path, 'rb') as f:
+                                                docx_bytes = f.read()
+                                            docx_name = os.path.basename(word_path)
+                                            extraction_error = "PDF non généré (LibreOffice manquant). DOCX disponible au téléchargement."
+                                            app.logger.info(f"Generated DOCX (fallback) in tempdir: {word_path}")
+                                    finally:
+                                        try:
+                                            for fn in os.listdir(tmpdir):
+                                                os.unlink(os.path.join(tmpdir, fn))
+                                            os.rmdir(tmpdir)
+                                        except Exception:
+                                            pass
                                 except Exception:
                                     app.logger.exception("DOCX generation failed")
                                     raise
@@ -1236,29 +1275,36 @@ def auto_bulletin():
                                     'error': f"Erreur lors de l'insertion en base: {str(e)}"
                                 }
 
-                        # Prepare download list - FIXED: Use relative URLs for SSH port forwarding
-                        generated_files = []
-                        if pdf_path and os.path.exists(pdf_path):
-                            base_name = os.path.basename(pdf_path)
-                            # Use relative URL instead of url_for to avoid port issues
-                            download_url = f"/auto_bulletin/download/{base_name}"
-                            generated_files.append({
-                                'name': base_name,
-                                'type': 'PDF',
-                                'url': download_url
-                            })
-                            app.logger.info(f"PDF ready for download: {base_name} -> {download_url}")
-                            
-                        if word_path and os.path.exists(word_path):
-                            base_name = os.path.basename(word_path)
-                            # Use relative URL instead of url_for to avoid port issues
-                            download_url = f"/auto_bulletin/download/{base_name}"
-                            generated_files.append({
-                                'name': base_name,
-                                'type': 'Word',
-                                'url': download_url
-                            })
-                            app.logger.info(f"DOCX ready for download: {base_name} -> {download_url}")
+                        # Package generated files into an in-memory ZIP and return directly
+                        try:
+                            import io, zipfile
+                            zip_buffer = io.BytesIO()
+                            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                                added = 0
+                                if pdf_bytes:
+                                    name = pdf_name or f"{bulletin_id}.pdf"
+                                    zf.writestr(name, pdf_bytes)
+                                    added += 1
+                                if docx_bytes:
+                                    name = docx_name or f"{bulletin_id}.docx"
+                                    zf.writestr(name, docx_bytes)
+                                    added += 1
+                                # If nothing in bytes but file paths exist on disk, attempt to include them
+                                if added == 0 and pdf_path and os.path.exists(pdf_path):
+                                    with open(pdf_path, 'rb') as f:
+                                        zf.writestr(os.path.basename(pdf_path), f.read())
+                                        added += 1
+                                if added == 0 and word_path and os.path.exists(word_path):
+                                    with open(word_path, 'rb') as f:
+                                        zf.writestr(os.path.basename(word_path), f.read())
+                                        added += 1
+                            zip_buffer.seek(0)
+                            if zip_buffer.getbuffer().nbytes > 0:
+                                download_name = f"{bulletin_id}_auto_bulletin_files.zip"
+                                return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name=download_name)
+                        except Exception:
+                            app.logger.exception('Failed to create in-memory zip; falling back to template view')
+                            generated_files = []
                     else:
                         # Preview mode: show extracted data in the form
                         extracted_data = data

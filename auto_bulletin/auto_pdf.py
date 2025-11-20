@@ -488,7 +488,7 @@ def convert_docx_to_pdf_libreoffice(docx_path):
     raise RuntimeError(f"Conversion réussie mais PDF introuvable pour: {base}")
 
 
-def generate_docx_from_json(json_path, bulletin_id):
+def generate_docx_from_json(json_path, bulletin_id, out_dir=None):
     """
     Generate a DOCX file from JSON data and bulletin ID.
     """
@@ -565,7 +565,10 @@ def generate_docx_from_json(json_path, bulletin_id):
                     for paragraph in cell.paragraphs:
                         replace_placeholders_in_paragraph(paragraph, placeholders)
 
-        out_dir = os.path.dirname(os.path.abspath(__file__))
+        # Use provided out_dir (e.g., a temp dir) or fallback to package dir
+        if out_dir is None:
+            out_dir = os.path.dirname(os.path.abspath(__file__))
+        os.makedirs(out_dir, exist_ok=True)
         docx_path = os.path.join(out_dir, f"{base_filename_display}.docx")
         doc.save(docx_path)
         return docx_path
@@ -595,11 +598,61 @@ def _linux_generate_pdf(advisory_data: dict, base_filename_display: str) -> str:
             pass
 
 
-def generate_pdf_from_json(json_path, bulletin_id):
+def generate_pdf_from_json(json_path, bulletin_id, return_bytes=False):
     """
     Generate a PDF from JSON data. Works on both Windows and Linux.
     """
-    # First generate the DOCX
+    # If caller wants bytes (no persistent file), generate in temp dir and return bytes
+    if return_bytes:
+        tmpdir = tempfile.mkdtemp(prefix="auto_bulletin_")
+        try:
+            docx_path = generate_docx_from_json(json_path, bulletin_id, out_dir=tmpdir)
+            system = platform.system()
+            try:
+                if system == 'Windows':
+                    try:
+                        pdf_path = convert_docx_to_pdf_windows(docx_path)
+                    except Exception:
+                        pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
+                else:
+                    pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
+            except Exception as e:
+                # On conversion error, still attempt to read DOCX and return it
+                pdf_path = None
+
+            result = {}
+            # Read PDF bytes if available
+            if pdf_path and os.path.exists(pdf_path):
+                with open(pdf_path, 'rb') as f:
+                    result['pdf_bytes'] = f.read()
+                result['pdf_name'] = os.path.basename(pdf_path)
+            else:
+                result['pdf_bytes'] = None
+                result['pdf_name'] = None
+
+            # Read DOCX bytes
+            if docx_path and os.path.exists(docx_path):
+                with open(docx_path, 'rb') as f:
+                    result['docx_bytes'] = f.read()
+                result['docx_name'] = os.path.basename(docx_path)
+            else:
+                result['docx_bytes'] = None
+                result['docx_name'] = None
+
+            return result
+        finally:
+            # Cleanup temp files & dir
+            try:
+                for fn in os.listdir(tmpdir):
+                    try:
+                        os.unlink(os.path.join(tmpdir, fn))
+                    except Exception:
+                        pass
+                os.rmdir(tmpdir)
+            except Exception:
+                pass
+
+    # Default behavior: generate files next to package (legacy)
     docx_path = generate_docx_from_json(json_path, bulletin_id)
     system = platform.system()
     try:
