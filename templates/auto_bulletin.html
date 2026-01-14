@@ -72,12 +72,16 @@
 
   {% if generated_files %}
     <div style="text-align: center; margin-bottom: 1.5rem; display: flex; justify-content: center; gap: 32px;">
-      <a href="?download={{ generated_files.pdf }}" title="Download PDF">
-        <img src="/static/pdf.png" alt="Download PDF" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+      {% if generated_files.pdf %}
+      <a href="/auto_bulletin/download/{{ generated_files.pdf }}" title="Download PDF" target="_blank">
+        <img src="{{ url_for('static', filename='pdf.png') }}" alt="Download PDF" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
       </a>
-      <a href="?download={{ generated_files.word }}" title="Download Word">
-        <img src="/static/doc.png" alt="Download Word" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
+      {% endif %}
+      {% if generated_files.word %}
+      <a href="/auto_bulletin/download/{{ generated_files.word }}" title="Download Word" target="_blank">
+        <img src="{{ url_for('static', filename='doc.png') }}" alt="Download Word" style="width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 8px #764ba2cc);transition:transform 0.15s;cursor:pointer;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='none'">
       </a>
+      {% endif %}
     </div>
   {% endif %}
   
