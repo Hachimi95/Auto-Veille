@@ -1,669 +1,542 @@
+"""
+Bulletin DOCX/PDF generator.
+
+Key fixes vs previous version:
+  - Placeholder replacement now merges split runs before matching,
+    so [CVE2], [score], [risques], [Delai], [Ref], [Mitigations] are
+    found even when Word splits them across multiple <w:r> elements.
+  - All paragraphs are visited recursively: body paragraphs, every
+    table cell (including inside text-boxes / mc:Choice blocks), and
+    header/footer paragraphs.
+  - fix_table_properties targets the correct body table by scanning
+    for [CVE] rather than assuming a fixed index.
+  - import re moved to module level (was inside a loop).
+  - The version-splitting workaround that duplicated logic is removed;
+    split_version_text handles everything.
+"""
+
 import os
-from docx import Document
-import json
 import re
-from datetime import datetime
-from docx.shared import Pt
-from docx.enum.text import WD_LINE_SPACING
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.enum.text import WD_BREAK
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.shared import RGBColor
-import subprocess
+import json
 import platform
 import shutil
-import tempfile  # added
+import subprocess
+import tempfile
+from datetime import datetime
+
+from docx import Document
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from lxml import etree
 
-__all__ = ["generate_pdf_from_json", "generate_docx_from_json"]  # ensure import works
+__all__ = ["generate_pdf_from_json", "generate_docx_from_json"]
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+MONTHS_FR = {
+    "janvier": "01", "février": "02", "mars": "03", "avril": "04",
+    "mai": "05", "juin": "06", "juillet": "07", "août": "08",
+    "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12",
+}
+
+VERSION_PATTERN = re.compile(
+    r'\d+\.\d+\.\d+\.\d+\/\.\d+'
+    r'|\d+\.\d+\.\d+\+security-\d{2}rc\d+'
+    r'|\d+\.\d+\.\d+\+security-\d{2}'
+    r'|\d+\.\d+\.\d+\.\d+'
+    r'|\d+\.\d+\.\d+rc\d+'
+    r'|\d+\.\d+\.\d+'
+    r'|\d{1,2}\.\d{1,2}\.x'
+    r'|\d+\.x'
+    r'|v\d+\.\d+'
+    r'|\d{1,2}\.\d{1,2}'
+)
 
 
-def convert_date_format(french_date):
-    """Convert French date to dd/mm/yyyy format"""
+def convert_date_format(french_date: str) -> str:
+    """Convert French date string to dd/mm/yyyy."""
     try:
-        months = {
-            "janvier": "01", "février": "02", "mars": "03", "avril": "04",
-            "mai": "05", "juin": "06", "juillet": "07", "août": "08",
-            "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"
-        }
         parts = french_date.split()
-        day = parts[0]
-        month = months.get(parts[1].lower(), "")
-        year = parts[2]
-        
-        if month:
-            return f"{day}/{month}/{year}"
-        else:
-            return french_date
-    except Exception as e:
-        print(f"Error converting date: {e}")
+        day, month_fr, year = parts[0], parts[1].lower(), parts[2]
+        month = MONTHS_FR.get(month_fr, "")
+        return f"{day}/{month}/{year}" if month else french_date
+    except Exception:
         return french_date
 
 
-def split_version_text(text):
-    """
-    Split text into parts, detecting version numbers and returning a list of tuples
-    indicating whether each part should be bold
-    """
-    version_patterns = [
-        r'\d+\.\d+\.\d+\.\d+',
-        r'\d+\.\d+\.\d+\.\d+\/\.\d+',
-        r'\d+\.\d+\.\d+(\+security-\d{2})?rc\d+',
-        r'\d+\.\d+\.\d+(\+security-\d{2})?',
-        r'\d+\.\d+\.\d+\.\d+\/\.\d+',
-        r'\d+\.\d+\.\d+\.\d+',
-        r'\d+\.\d+\.\d+\.\d+',
-        r'\d+\.\d+\.\d+',
-        r'\d{1,2}\.\d{1,2}\.x',
-        r'\d+\.x', 
-        r'v\d+\.\d+',
-        r'\d{1,2}\.\d{1,2}',
-    ]
-    
-    combined_pattern = '|'.join(f'({pattern})' for pattern in version_patterns)
-    parts = []
-    last_end = 0
-    
-    for match in re.finditer(combined_pattern, text):
-        start, end = match.span()
-        
-        if start > last_end:
-            parts.append((text[last_end:start], False))
-        
-        parts.append((text[start:end], True))
-        
-        last_end = end
-    
-    if last_end < len(text):
-        parts.append((text[last_end:], False))
-    
+def split_version_text(text: str):
+    """Return list of (fragment, is_bold) where version numbers are bold."""
+    parts, last = [], 0
+    for m in VERSION_PATTERN.finditer(text):
+        if m.start() > last:
+            parts.append((text[last:m.start()], False))
+        parts.append((text[m.start():m.end()], True))
+        last = m.end()
+    if last < len(text):
+        parts.append((text[last:], False))
     return parts
 
 
-def replace_placeholders_in_paragraph(paragraph, placeholders):
-    """Replace placeholders in paragraphs with formatted content."""
-    original_text = paragraph.text
-    original_runs = list(paragraph.runs)
+def _copy_run_format(src_run, dst_run):
+    """Copy font attributes from src_run to dst_run (best-effort)."""
+    dst_run.font.name = src_run.font.name
+    dst_run.font.size = src_run.font.size
+    dst_run.font.bold = src_run.font.bold
+    try:
+        if src_run.font.color and src_run.font.color.type is not None:
+            dst_run.font.color.rgb = src_run.font.color.rgb
+    except Exception:
+        pass
 
-    # Check if the paragraph contains any placeholder
-    contains_placeholder = any(placeholder in original_text for placeholder in placeholders.keys())
-    if not contains_placeholder:
+
+# ---------------------------------------------------------------------------
+# Paragraph-level placeholder replacement
+# ---------------------------------------------------------------------------
+
+def _merge_paragraph_runs(paragraph) -> str:
+    """Return the full text of a paragraph by joining all run texts."""
+    return "".join(r.text or "" for r in paragraph.runs)
+
+
+def replace_placeholders_in_paragraph(paragraph, placeholders: dict):
+    """
+    Replace any placeholder found in *paragraph*.
+
+    Word often splits a single placeholder like [CVE2] across several
+    consecutive runs, e.g. ['[', 'CVE', '2]'].  We detect this by
+    reading the concatenated run text.  When a match is found we clear
+    all runs and rewrite the paragraph content.
+    """
+    full_text = _merge_paragraph_runs(paragraph)
+    if not full_text:
         return
 
-    for placeholder, value in placeholders.items():
-        if placeholder in original_text:
+    matched_key = next((k for k in placeholders if k in full_text), None)
+    if matched_key is None:
+        return
 
-            if placeholder == '[CVE]':
-                paragraph.clear()
+    # Preserve formatting from the first non-empty run before clearing.
+    original_runs = list(paragraph.runs)
+    ref_run = next((r for r in original_runs if r.text.strip()), None)
 
-                # Split CVEs and calculate font size, line spacing, and space before dynamically
-                cves = value.split('\n')
-                cve_count = len(cves)
+    value = placeholders[matched_key]
 
-                # Define dynamic font size, line spacing, and space before based on the number of CVEs
-                if cve_count <= 6:
-                    font_size = Pt(16)
-                    line_spacing = 1.6
-                    space_before = Pt(70)
-                elif cve_count <= 10:
-                    font_size = Pt(15)
-                    line_spacing = 1.5
-                    space_before = Pt(50)
-                elif cve_count <= 15:
-                    font_size = Pt(14)
-                    line_spacing = 1.4
-                    space_before = Pt(40)
-                elif cve_count <= 20:
-                    font_size = Pt(13)
-                    line_spacing = 1.3
-                    space_before = Pt(30)
-                elif cve_count <= 25:
-                    font_size = Pt(12)
-                    line_spacing = 1.1
-                    space_before = Pt(20)
-                elif cve_count <= 30:
-                    font_size = Pt(11)
-                    line_spacing = 1
-                    space_before = Pt(20)
-                elif cve_count <= 35:
-                    font_size = Pt(11)
-                    line_spacing = 0.8
-                    space_before = Pt(10)
-                elif cve_count <= 40:
-                    font_size = Pt(11)
-                    line_spacing = 0.8
-                    space_before = Pt(5)
-                elif cve_count <= 45:
-                    font_size = Pt(10)
-                    line_spacing = 0.5
-                    space_before = Pt(0)
-                else:
-                    font_size = Pt(9)
-                    line_spacing = 0.1
-                    space_before = Pt(0.1)
+    # --- [CVE] / [CVE2] ---
+    if matched_key in ("[CVE]", "[CVE2]"):
+        paragraph.clear()
+        cves = str(value).split("\n")
+        n = len(cves)
+        if   n <= 6:  font_size, line_spacing, space_before = Pt(16), 1.6, Pt(70)
+        elif n <= 10: font_size, line_spacing, space_before = Pt(15), 1.5, Pt(50)
+        elif n <= 15: font_size, line_spacing, space_before = Pt(14), 1.4, Pt(40)
+        elif n <= 20: font_size, line_spacing, space_before = Pt(13), 1.3, Pt(30)
+        elif n <= 25: font_size, line_spacing, space_before = Pt(12), 1.1, Pt(20)
+        elif n <= 30: font_size, line_spacing, space_before = Pt(11), 1.0, Pt(20)
+        elif n <= 35: font_size, line_spacing, space_before = Pt(11), 0.8, Pt(10)
+        elif n <= 40: font_size, line_spacing, space_before = Pt(11), 0.8, Pt(5)
+        elif n <= 45: font_size, line_spacing, space_before = Pt(10), 0.5, Pt(0)
+        else:         font_size, line_spacing, space_before = Pt(9),  0.1, Pt(0)
 
-                # Restore original paragraph properties
-                if original_runs:
-                    first_run = original_runs[0]
-                    original_font_name = first_run.font.name
-                    original_font_bold = first_run.font.bold
-                    original_font_color = first_run.font.color.rgb if first_run.font.color else None
-                else:
-                    original_font_name = "Arial"
-                    original_font_bold = False
-                    original_font_color = None
+        for i, cve in enumerate(cves):
+            run = paragraph.add_run(cve.strip())
+            if ref_run:
+                _copy_run_format(ref_run, run)
+            run.font.size = font_size
+            if i < n - 1:
+                paragraph.add_run("\n")
 
-                # Add each CVE on a new line with the dynamic font size
-                for i, cve in enumerate(cves):
-                    run = paragraph.add_run(cve.strip())
-                    run.font.name = original_font_name
-                    run.font.size = font_size
-                    run.font.bold = original_font_bold
-                    if original_font_color:
-                        run.font.color.rgb = original_font_color
+        paragraph.paragraph_format.space_after  = Pt(4)
+        paragraph.paragraph_format.space_before = space_before
+        paragraph.paragraph_format.line_spacing = line_spacing
 
-                    # Add a new line after each CVE (except the last one)
-                    if i < len(cves) - 1:
-                        paragraph.add_run('\n')
+    # --- [Produits affectés] ---
+    elif matched_key == "[Produits affectés]":
+        align = paragraph.alignment
+        style = paragraph.style
+        paragraph.clear()
 
-                # Set paragraph formatting with dynamic line spacing and space before
-                paragraph.paragraph_format.space_after = Pt(4)
-                paragraph.paragraph_format.space_before = space_before
-                paragraph.paragraph_format.line_spacing = line_spacing
+        products = value if isinstance(value, list) else [str(value)]
+        for i, product in enumerate(products):
+            bullet = paragraph.add_run(chr(183) + "   ")
+            bullet.font.name = "Symbol"
+            bullet.font.size = Pt(11)
+            for fragment, bold in split_version_text(product):
+                r = paragraph.add_run(fragment)
+                r.font.name = "Arial"
+                r.font.size = Pt(10)
+                r.font.bold = bold
+            if i < len(products) - 1:
+                paragraph.add_run("\n")
+
+        paragraph.paragraph_format.line_spacing = 1.6
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after  = Pt(1)
+        paragraph.alignment = align
+        paragraph.style     = style
+
+    # --- [Mitigations] ---
+    elif matched_key == "[Mitigations]":
+        align = paragraph.alignment
+        style = paragraph.style
+        paragraph.clear()
+
+        mitigations = value if isinstance(value, list) else [value]
+        for i, mitigation in enumerate(mitigations):
+            details = _parse_mitigation(mitigation)
+            rec_text = (details.get("recommendation") or "").strip()
+            versions = _expand_versions(details.get("versions") or [])
+
+            if rec_text:
+                r = paragraph.add_run(rec_text)
+                r.font.name = "Arial"
+                r.font.size = Pt(10)
+                r.font.bold = False
+                if versions:
+                    paragraph.add_run("\n")
+
+            for version in versions:
+                v = str(version).strip()
+                if not v:
+                    continue
+                indent = paragraph.add_run("          ")
+                indent.font.name = "Arial"
+                indent.font.size = Pt(10)
+                bullet = paragraph.add_run(chr(183) + "   ")
+                bullet.font.name = "Symbol"
+                bullet.font.size = Pt(11)
+                for fragment, bold in split_version_text(v):
+                    r = paragraph.add_run(fragment)
+                    r.font.name = "Arial"
+                    r.font.size = Pt(10)
+                    r.font.bold = bold
+                paragraph.add_run("\n")
+
+            if i < len(mitigations) - 1:
+                paragraph.add_run("\n")
+
+        paragraph.paragraph_format.line_spacing = 1.6
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after  = Pt(1)
+        paragraph.alignment = align
+        paragraph.style     = style
+
+    # --- all other placeholders (simple text replacement) ---
+    else:
+        new_text = full_text.replace(matched_key, str(value))
+        paragraph.clear()
+        run = paragraph.add_run(new_text)
+        if ref_run:
+            _copy_run_format(ref_run, run)
 
 
-            elif placeholder == '[Produits affectés]':
-                # Store original paragraph properties
-                paragraph_alignment = paragraph.alignment
-                paragraph_style = paragraph.style
+def _parse_mitigation(mitigation) -> dict:
+    """Normalise a mitigation entry into {'recommendation': str, 'versions': list}."""
+    if isinstance(mitigation, str):
+        try:
+            parsed = json.loads(mitigation)
+            if isinstance(parsed, dict):
+                if "recommendation" in parsed:
+                    return parsed
+                # single-key wrapper: {product: {recommendation, versions}}
+                return next(iter(parsed.values()), {})
+        except json.JSONDecodeError:
+            pass
+        return {"recommendation": mitigation, "versions": []}
 
-                paragraph.clear()
-                if isinstance(value, list):
-                    for i, product in enumerate(value):
-                        # Add bullet symbol (•) with specific font and size
-                        bullet_run = paragraph.add_run(chr(183) + "   ")
-                        bullet_run.font.name = "Symbol"
-                        bullet_run.font.size = Pt(11)
+    if isinstance(mitigation, dict):
+        if "recommendation" in mitigation:
+            return mitigation
+        return next(iter(mitigation.values()), mitigation)
 
-                        # Process product text with version splitting
-                        parts = split_version_text(product)
-                        for text_part, should_bold in parts:
-                            run = paragraph.add_run(text_part)
-                            run.font.name = "Arial"
-                            run.font.size = Pt(10)
-                            run.font.bold = should_bold
+    return {"recommendation": str(mitigation), "versions": []}
 
-                        # Add line break after each product (except the last one)
-                        if i < len(value) - 1:
-                            paragraph.add_run('\n')
-                    
-                    # Set paragraph formatting
-                    paragraph.paragraph_format.line_spacing = 1.6
-                    paragraph.paragraph_format.space_before = Pt(0)
-                    paragraph.paragraph_format.space_after = Pt(1)
 
-                # Restore paragraph properties
-                paragraph.alignment = paragraph_alignment
-                paragraph.style = paragraph_style
-                
-            elif placeholder == '[Mitigations]':
-                # Store original paragraph properties
-                paragraph_alignment = paragraph.alignment
-                paragraph_style = paragraph.style
+def _expand_versions(versions: list) -> list:
+    """Split version strings that contain multiple concatenated versions."""
+    result = []
+    for v in versions:
+        v = str(v).strip()
+        if not v:
+            continue
+        if v.count("ou ultérieure") > 1:
+            parts = re.split(r"(ou ultérieure)", v)
+            buf = ""
+            for part in parts:
+                buf += part
+                if part == "ou ultérieure":
+                    result.append(buf.strip())
+                    buf = ""
+            if buf.strip():
+                result.append(buf.strip())
+        elif v.count("or later") > 1:
+            parts = re.split(r"(or later)", v)
+            buf = ""
+            for part in parts:
+                buf += part
+                if part == "or later":
+                    result.append(buf.strip())
+                    buf = ""
+            if buf.strip():
+                result.append(buf.strip())
+        else:
+            result.append(v)
+    return result
 
-                paragraph.clear()
-                
-                if isinstance(value, list):
-                    for i, mitigation in enumerate(value):
-                        # Parse mitigation structure
-                        details = None
-                        
-                        if isinstance(mitigation, str):
-                            try:
-                                parsed = json.loads(mitigation)
-                                if isinstance(parsed, dict):
-                                    if len(parsed) == 1:
-                                        product_key = list(parsed.keys())[0]
-                                        details = parsed[product_key]
-                                    else:
-                                        details = parsed
-                                else:
-                                    details = {'recommendation': mitigation, 'versions': []}
-                            except json.JSONDecodeError:
-                                details = {'recommendation': mitigation, 'versions': []}
-                        
-                        elif isinstance(mitigation, dict):
-                            if 'recommendation' in mitigation and 'versions' in mitigation:
-                                details = mitigation
-                            elif len(mitigation) == 1:
-                                product_key = list(mitigation.keys())[0]
-                                details = mitigation[product_key]
-                            else:
-                                details = mitigation
-                        
-                        else:
-                            details = {'recommendation': str(mitigation), 'versions': []}
-                        
-                        if not isinstance(details, dict):
-                            details = {'recommendation': str(details), 'versions': []}
-                        
-                        # Extract recommendation and versions
-                        rec_text = (details.get('recommendation') or '').strip()
-                        versions = details.get('versions', []) or []
-                        
-                        if not isinstance(versions, list):
-                            versions = [versions]
-                        
-                        # WORKAROUND: Handle wrapper format from normalize_mitigations()
-                        # Data arrives with versions concatenated into recommendation string
-                        if not versions and rec_text:
-                            lines = rec_text.split('\n')
-                            if len(lines) > 1:
-                                rec_text = lines[0].strip()
-                                versions = [line.strip() for line in lines[1:] if line.strip()]
-                            elif ':' in rec_text:
-                                parts = rec_text.split(':', 1)
-                                if len(parts) == 2:
-                                    rec_text = parts[0].strip() + ':'
-                                    version_text = parts[1].strip()
-                                    if version_text:
-                                        versions = [version_text]
-                        
-                        # GENERAL FIX: Split concatenated versions into separate items
-                        # Handles cases where multiple versions are in one string
-                        expanded_versions = []
-                        for version in versions:
-                            version_str = str(version).strip()
-                            if not version_str:
-                                continue
-                            
-                            # Check if string contains multiple versions by looking for repeated patterns
-                            # Pattern 1: Multiple "ou ultérieure" or "or later" occurrences
-                            import re
-                            
-                            # Count occurrences of version ending phrases
-                            ou_count = version_str.count('ou ultérieure')
-                            or_count = version_str.count('or later')
-                            
-                            if ou_count > 1 or or_count > 1:
-                                # Split by the version ending phrase, keeping the phrase with each part
-                                if ou_count > 1:
-                                    # Split and keep "ou ultérieure" with each part
-                                    parts = re.split(r'(ou ultérieure)', version_str)
-                                    temp_version = ""
-                                    for part in parts:
-                                        if part == 'ou ultérieure':
-                                            temp_version += part
-                                            if temp_version.strip():
-                                                expanded_versions.append(temp_version.strip())
-                                            temp_version = ""
-                                        else:
-                                            temp_version += part
-                                    if temp_version.strip():
-                                        expanded_versions.append(temp_version.strip())
-                                elif or_count > 1:
-                                    # Split and keep "or later" with each part
-                                    parts = re.split(r'(or later)', version_str)
-                                    temp_version = ""
-                                    for part in parts:
-                                        if part == 'or later':
-                                            temp_version += part
-                                            if temp_version.strip():
-                                                expanded_versions.append(temp_version.strip())
-                                            temp_version = ""
-                                        else:
-                                            temp_version += part
-                                    if temp_version.strip():
-                                        expanded_versions.append(temp_version.strip())
-                            else:
-                                # No multiple versions detected, keep as is
-                                expanded_versions.append(version_str)
-                        
-                        versions = expanded_versions if expanded_versions else versions
-                        
-                        print(f"DEBUG: Expanded versions = {versions}")
-                        
-                        # Add recommendation text (no bullet, no indent)
-                        if rec_text:
-                            run = paragraph.add_run(rec_text)
-                            run.font.name = "Arial"
-                            run.font.size = Pt(10)
-                            run.font.bold = False
-                            
-                            # Only add newline if there are versions to follow
-                            if versions:
-                                paragraph.add_run('\n')
-                        
-                        # Add versions with bullets and indent
-                        for j, version in enumerate(versions):
-                            version_str = str(version).strip()
-                            print(f"DEBUG: Processing version {j}: '{version_str}'")
-                            
-                            if version_str:
-                                # Add indentation spaces before bullet
-                                indent_run = paragraph.add_run("          ")  # 10 spaces for indent
-                                indent_run.font.name = "Arial"
-                                indent_run.font.size = Pt(10)
-                                
-                                # Add bullet symbol (•)
-                                bullet_run = paragraph.add_run(chr(183) + "   ")
-                                bullet_run.font.name = "Symbol"
-                                bullet_run.font.size = Pt(11)
-                                
-                                # Process version text with version splitting for bold
-                                parts = split_version_text(version_str)
-                                for text_part, should_bold in parts:
-                                    run = paragraph.add_run(text_part)
-                                    run.font.name = "Arial"
-                                    run.font.size = Pt(10)
-                                    run.font.bold = should_bold
-                                
-                                # Add line break after EVERY version
-                                paragraph.add_run('\n')
-                        
-                        # Add line break between different mitigations (except the last one)
-                        if i < len(value) - 1:
-                            paragraph.add_run('\n')
-                    
-                    # Set paragraph formatting (same as Produits affectés)
-                    paragraph.paragraph_format.line_spacing = 1.6
-                    paragraph.paragraph_format.space_before = Pt(0)
-                    paragraph.paragraph_format.space_after = Pt(1)
 
-                # Restore paragraph properties
-                paragraph.alignment = paragraph_alignment
-                paragraph.style = paragraph_style
-            else:
-                # For other placeholders, replace directly and preserve formatting
-                original_text = original_text.replace(placeholder, str(value))
-                paragraph.clear()
-                run = paragraph.add_run(original_text)
+# ---------------------------------------------------------------------------
+# Document-wide paragraph iteration (body + all tables + text boxes)
+# ---------------------------------------------------------------------------
 
-                # Preserve original formatting
-                if original_runs:
-                    first_run = original_runs[0]
-                    run.font.name = first_run.font.name
-                    run.font.size = first_run.font.size
-                    run.font.bold = first_run.font.bold
-                    if hasattr(first_run.font, 'color') and first_run.font.color:
-                        run.font.color.rgb = first_run.font.color.rgb
+def iter_all_paragraphs(doc):
+    """
+    Yield every paragraph in the document:
+      - body paragraphs
+      - cells in every table (including tables inside text boxes / mc:Choice)
+      - headers and footers
+    """
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
+    # Collect all <w:p> elements under <w:body> — this covers body paragraphs,
+    # table cells, AND text-box content (txbxContent) in one pass.
+    # We skip <mc:Fallback> blocks to avoid double-processing duplicate tables.
+    MC = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+    fallbacks = set(
+        id(el) for el in doc.element.body.iter(f"{{{MC}}}Fallback")
+    )
+
+    from docx.text.paragraph import Paragraph as DocxParagraph
+
+    for p_elem in doc.element.body.iter(f"{{{W}}}p"):
+        # Skip if this <w:p> is inside a Fallback block
+        if any(id(anc) in fallbacks for anc in p_elem.iterancestors()):
+            continue
+        yield DocxParagraph(p_elem, doc)
+
+    # Headers and footers
+    for section in doc.sections:
+        for hdr_ftr in (
+            section.header, section.footer,
+            section.even_page_header, section.even_page_footer,
+            section.first_page_header, section.first_page_footer,
+        ):
+            if hdr_ftr is None:
+                continue
+            for p_elem in hdr_ftr._element.iter(f"{{{W}}}p"):
+                yield DocxParagraph(p_elem, hdr_ftr)
+
+
+# ---------------------------------------------------------------------------
+# Table row-height fix
+# ---------------------------------------------------------------------------
 
 def set_row_height(row, height_pt):
-    """Set a fixed height for a table row"""
     tr = row._tr
     trPr = tr.get_or_add_trPr()
-    trHeight = OxmlElement('w:trHeight')
-    trHeight.set(qn('w:val'), str(height_pt))
-    trHeight.set(qn('w:hRule'), 'exact')
+    trHeight = OxmlElement("w:trHeight")
+    trHeight.set(qn("w:val"), str(height_pt))
+    trHeight.set(qn("w:hRule"), "exact")
     trPr.append(trHeight)
 
 
 def fix_table_properties(doc):
-    """Fix table properties to ensure proper rendering"""
-    # Ensure we're modifying the first table only
-    if len(doc.tables) >= 1:
-        table = doc.tables[0]
+    """
+    Find the main content table (the one that contains [CVE]) and set
+    a fixed height on its second row so content fits properly.
+    """
+    W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    MC = "http://schemas.openxmlformats.org/markup-compatibility/2006"
+    fallbacks = set(id(el) for el in doc.element.body.iter(f"{{{MC}}}Fallback"))
 
-        # Check if the table has at least two rows
-        if len(table.rows) >= 2:
-            middle_row = table.rows[1]
-            set_row_height(middle_row, 7800)
-            
-            # Set row properties to prevent text overflow
-            for cell in middle_row.cells:
-                for paragraph in cell.paragraphs:
-                    if '[CVE]' in paragraph.text:
-                        paragraph.paragraph_format.line_spacing = 1.0
-                        paragraph.paragraph_format.space_before = Pt(0)
-                        paragraph.paragraph_format.space_after = Pt(0)
+    from docx.table import Table
+
+    for tbl_elem in doc.element.body.iter(f"{{{W}}}tbl"):
+        # Skip fallback copies
+        if any(id(anc) in fallbacks for anc in tbl_elem.iterancestors()):
+            continue
+        texts = [t.text or "" for t in tbl_elem.iter(f"{{{W}}}t")]
+        if "[CVE]" in texts or any("[CVE]" in t for t in texts):
+            tbl = Table(tbl_elem, doc)
+            if len(tbl.rows) >= 2:
+                set_row_height(tbl.rows[1], 7800)
+            break  # only fix the first matching table
 
 
-def check_libreoffice_available():
-    """Return executable path for LibreOffice/soffice if available, else None."""
-    # Prefer explicit env var
+# ---------------------------------------------------------------------------
+# LibreOffice helpers
+# ---------------------------------------------------------------------------
+
+def _find_libreoffice() -> str | None:
     env = os.getenv("SOFFICE_PATH")
     candidates = [env] if env else []
-    # Common binary names
     for name in ("soffice", "libreoffice", "lowriter"):
         p = shutil.which(name)
         if p:
             candidates.append(p)
-    # Common absolute locations
     candidates += [
-        "/usr/bin/soffice",
-        "/usr/bin/libreoffice",
-        "/usr/local/bin/soffice",
-        "/usr/local/bin/libreoffice",
+        "/usr/bin/soffice", "/usr/bin/libreoffice",
+        "/usr/local/bin/soffice", "/usr/local/bin/libreoffice",
         "/usr/lib/libreoffice/program/soffice",
-        "/snap/bin/libreoffice",
-        "/opt/libreoffice/program/soffice",
+        "/snap/bin/libreoffice", "/opt/libreoffice/program/soffice",
     ]
     seen = set()
-    for c in list(candidates):
+    for c in candidates:
         if not c or c in seen:
             continue
         seen.add(c)
-        if os.path.exists(c) and os.access(c, os.X_OK):
+        if os.path.isfile(c) and os.access(c, os.X_OK):
             return c
     return None
 
 
-def convert_docx_to_pdf_libreoffice(docx_path):
-    """
-    Convert DOCX to PDF using LibreOffice in headless mode.
-    """
-    soffice = check_libreoffice_available()
+def convert_docx_to_pdf_libreoffice(docx_path: str) -> str:
+    soffice = _find_libreoffice()
     if not soffice:
         raise RuntimeError(
-            "LibreOffice (soffice) not found for DOCX->PDF conversion on Linux.\n"
-            "Install it, e.g.:\n"
-            "  sudo apt-get update && sudo apt-get install -y libreoffice-core libreoffice-writer fonts-dejavu\n"
-            "Then retry."
+            "LibreOffice not found. Install with:\n"
+            "  sudo apt-get install -y libreoffice-core libreoffice-writer fonts-dejavu"
         )
-    output_dir = os.path.dirname(docx_path)
+    out_dir = os.path.dirname(docx_path)
     base = os.path.splitext(os.path.basename(docx_path))[0]
-    try:
-        proc = subprocess.run(
-            [soffice, "--headless", "--convert-to", "pdf", "--outdir", output_dir, docx_path],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True, timeout=120
-        )
-        if proc.stdout:
-            print(f"[auto_pdf] soffice stdout: {proc.stdout.strip()}")
-        if proc.stderr:
-            print(f"[auto_pdf] soffice stderr: {proc.stderr.strip()}")
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("La conversion PDF a expiré (timeout)")
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Échec de la conversion PDF: {e.stderr or e.stdout or e}")
-    # Resolve PDF path robustly
-    expected_pdf = os.path.join(output_dir, f"{base}.pdf")
-    if os.path.exists(expected_pdf):
-        return expected_pdf
-    # Fallback: find any PDF produced for this base
-    for f in os.listdir(output_dir):
+    proc = subprocess.run(
+        [soffice, "--headless", "--convert-to", "pdf", "--outdir", out_dir, docx_path],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        check=True, timeout=120,
+    )
+    expected = os.path.join(out_dir, f"{base}.pdf")
+    if os.path.exists(expected):
+        return expected
+    for f in os.listdir(out_dir):
         if f.lower().endswith(".pdf") and f.startswith(base):
-            return os.path.join(output_dir, f)
-    raise RuntimeError(f"Conversion réussie mais PDF introuvable pour: {base}")
+            return os.path.join(out_dir, f)
+    raise RuntimeError(f"Conversion succeeded but PDF not found for: {base}")
 
 
-def generate_docx_from_json(json_path, bulletin_id, out_dir=None):
-    """
-    Generate a DOCX file from JSON data and bulletin ID.
-    """
-    try:
-        with open(json_path, "r", encoding="utf-8") as file:
-            advisory_data = json.load(file)
-        if not isinstance(advisory_data, dict):
-            raise ValueError("Loaded JSON data is not a dictionary.")
-        # Use absolute template path to avoid CWD issues under systemd
-        tpl_dir = os.path.dirname(os.path.abspath(__file__))
-        tpl_path = os.path.join(tpl_dir, "template5.docx")
-        if os.path.exists(tpl_path):
-            doc = Document(tpl_path)
-        else:
-            # Fallback to a blank document if template is missing
-            doc = Document()
+# ---------------------------------------------------------------------------
+# Main public API
+# ---------------------------------------------------------------------------
 
-        # Date formatting
-        date_value = advisory_data.get("Date", "")
-        if date_value:
-            # Convert date to desired format
-            date_parts = date_value.split()
-            months = {
-                "janvier": "01", "février": "02", "mars": "03", "avril": "04",
-                "mai": "05", "juin": "06", "juillet": "07", "août": "08",
-                "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12"
-            }
-            if len(date_parts) >= 3:
-                day = date_parts[0]
-                month = months.get(date_parts[1].lower(), "00")
-                year = date_parts[2]
-                formatted_date = f"{day}{month}{year}"
-            else:
-                formatted_date = datetime.now().strftime("%d%m%Y")
+def generate_docx_from_json(json_path: str, bulletin_id: str, out_dir: str = None) -> str:
+    with open(json_path, encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise ValueError("JSON must be a top-level object.")
+
+    # Build output filename
+    date_raw = data.get("Date", "")
+    if date_raw:
+        parts = date_raw.split()
+        if len(parts) >= 3:
+            day = parts[0]
+            month = MONTHS_FR.get(parts[1].lower(), "00")
+            year = parts[2]
+            formatted_date = f"{day}{month}{year}"
         else:
             formatted_date = datetime.now().strftime("%d%m%Y")
+    else:
+        formatted_date = datetime.now().strftime("%d%m%Y")
 
-        # Get original title with spaces
-        titre = advisory_data.get("titre", "Unknown_Advisory")
+    titre = data.get("titre", "Unknown_Advisory")
+    raw_name = f"{formatted_date}-{bulletin_id} - {titre}"
+    base_name = "".join(c for c in raw_name if c.isalnum() or c in "-_ ").rstrip()
 
-        # Construct filename with space between ID and title
-        base_filename_display = f"{formatted_date}-{bulletin_id} - {titre}"
+    # Load template
+    tpl_dir  = os.path.dirname(os.path.abspath(__file__))
+    tpl_path = os.path.join(tpl_dir, "template5.docx")
+    doc = Document(tpl_path if os.path.exists(tpl_path) else None)
 
-        # Sanitize filename for saving
-        base_filename_display = "".join(x for x in base_filename_display if x.isalnum() or x in ['-', ' ', '_']).rstrip()
+    # Build placeholder map
+    display_date = convert_date_format(date_raw) if date_raw else ""
+    placeholders = {
+        "[Titre]":            data.get("titre", ""),
+        "[titre]":            data.get("titre", ""),
+        "[CVE2]":             "\n".join(data.get("CVEs ID", [])),
+        "[CVE]":              "\n".join(data.get("CVEs ID", [])),
+        "[Produits affectés]": data.get("Produits affectés", []),
+        "[Description]":      data.get("Description", ""),
+        "[Exploit]":          data.get("Exploit", ""),
+        "[Delai]":            data.get("Delai", ""),
+        "[score]":            data.get("score", ""),
+        "[Date]":             display_date,
+        "[Ref]":              "\n".join(data.get("Références", [])),
+        "[Mitigations]":      data.get("Mitigations", []),
+        "[risques]":          "\n".join(
+            r + "\n-" for r in data.get("risques", [])
+        ).rstrip("\n-"),
+    }
 
-        # Date formatting for display
-        date_value = advisory_data.get("Date", "")
-        date_value = convert_date_format(date_value) if date_value else ""
+    # Fix row heights before replacing content
+    fix_table_properties(doc)
 
-        # Map placeholders to content
-        placeholders = {
-            "[titre]": advisory_data.get("titre", ""),
-            "[CVE2]": "\n".join(advisory_data.get("CVEs ID", [])),
-            "[CVE]": "\n".join(advisory_data.get("CVEs ID", [])),
-            "[Produits affectés]": advisory_data.get("Produits affectés", []),
-            "[Description]": advisory_data.get("Description", ""),
-            "[Exploit]": advisory_data.get("Exploit", ""),
-            "[Delai]": advisory_data.get("Delai", ""),
-            "[score]": advisory_data.get("score", ""),
-            "[Date]": date_value,
-            "[Ref]": "\n".join(advisory_data.get("Références", [])),
-            "[Mitigations]": advisory_data.get("Mitigations", []),
-            "[risques]": "\n".join([risque + "\n-" for risque in advisory_data.get("risques", [])])[:-2]
-        }
+    # Replace every paragraph everywhere in the document
+    for paragraph in iter_all_paragraphs(doc):
+        replace_placeholders_in_paragraph(paragraph, placeholders)
 
-        # Fix table props, then replace
-        fix_table_properties(doc)
-        for paragraph in doc.paragraphs:
-            replace_placeholders_in_paragraph(paragraph, placeholders)
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for paragraph in cell.paragraphs:
-                        replace_placeholders_in_paragraph(paragraph, placeholders)
-
-        # Use provided out_dir (e.g., a temp dir) or fallback to package dir
-        if out_dir is None:
-            out_dir = os.path.dirname(os.path.abspath(__file__))
-        os.makedirs(out_dir, exist_ok=True)
-        docx_path = os.path.join(out_dir, f"{base_filename_display}.docx")
-        doc.save(docx_path)
-        return docx_path
-
-    except Exception as e:
-        raise Exception(f"Error generating DOCX: {e}")
+    # Save
+    if out_dir is None:
+        out_dir = tpl_dir
+    os.makedirs(out_dir, exist_ok=True)
+    docx_path = os.path.join(out_dir, f"{base_name}.docx")
+    doc.save(docx_path)
+    return docx_path
 
 
-def _linux_generate_pdf(advisory_data: dict, base_filename_display: str) -> str:
-    """
-    Compatibility path: generate DOCX then convert to PDF on Linux using LibreOffice.
-    """
-    # Write advisory to temp json and reuse generate_docx_from_json
-    with tempfile.NamedTemporaryFile('w+', delete=False, suffix='.json', encoding='utf-8') as tmp:
-        json.dump(advisory_data, tmp, ensure_ascii=False)
-        tmp.flush()
-        tmp_path = tmp.name
+def generate_pdf_from_json(json_path: str, bulletin_id: str, return_bytes: bool = False):
+    """Generate PDF (and optionally DOCX bytes) from a JSON advisory file."""
+    tmpdir = tempfile.mkdtemp(prefix="bulletin_")
     try:
-        # Use a synthetic bulletin_id when not provided in older calls (suffix of base)
-        bulletin_id = base_filename_display.split(' - ')[0] if ' - ' in base_filename_display else base_filename_display
-        docx_path = generate_docx_from_json(tmp_path, bulletin_id)
-        return convert_docx_to_pdf_libreoffice(docx_path)
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
+        docx_path = generate_docx_from_json(json_path, bulletin_id, out_dir=tmpdir)
 
-
-def generate_pdf_from_json(json_path, bulletin_id, return_bytes=False):
-    """
-    Generate a PDF from JSON data. Works on both Windows and Linux.
-    """
-    # If caller wants bytes (no persistent file), generate in temp dir and return bytes
-    if return_bytes:
-        tmpdir = tempfile.mkdtemp(prefix="auto_bulletin_")
+        pdf_path = None
         try:
-            docx_path = generate_docx_from_json(json_path, bulletin_id, out_dir=tmpdir)
-            system = platform.system()
-            try:
-                if system == 'Windows':
-                    try:
-                        pdf_path = convert_docx_to_pdf_windows(docx_path)
-                    except Exception:
-                        pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
-                else:
+            if platform.system() == "Windows":
+                try:
+                    from win32com import client as win32
+                    word = win32.Dispatch("Word.Application")
+                    word.Visible = False
+                    wb = word.Documents.Open(os.path.abspath(docx_path))
+                    pdf_path = docx_path.replace(".docx", ".pdf")
+                    wb.SaveAs(pdf_path, FileFormat=17)
+                    wb.Close()
+                    word.Quit()
+                except Exception:
                     pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
-            except Exception as e:
-                # On conversion error, still attempt to read DOCX and return it
-                pdf_path = None
+            else:
+                pdf_path = convert_docx_to_pdf_libreoffice(docx_path)
+        except Exception as e:
+            print(f"[bulletin] PDF conversion failed: {e}")
 
-            result = {}
-            # Read PDF bytes if available
+        if not return_bytes:
+            # Move files out of tmpdir to the script directory and return pdf path
+            dest_dir = os.path.dirname(os.path.abspath(__file__))
+            final_docx = shutil.copy2(docx_path, dest_dir)
             if pdf_path and os.path.exists(pdf_path):
-                with open(pdf_path, 'rb') as f:
-                    result['pdf_bytes'] = f.read()
-                result['pdf_name'] = os.path.basename(pdf_path)
-            else:
-                result['pdf_bytes'] = None
-                result['pdf_name'] = None
+                final_pdf = shutil.copy2(pdf_path, dest_dir)
+                return final_pdf
+            return final_docx
 
-            # Read DOCX bytes
-            if docx_path and os.path.exists(docx_path):
-                with open(docx_path, 'rb') as f:
-                    result['docx_bytes'] = f.read()
-                result['docx_name'] = os.path.basename(docx_path)
-            else:
-                result['docx_bytes'] = None
-                result['docx_name'] = None
-
-            return result
-        finally:
-            # Cleanup temp files & dir
-            try:
-                for fn in os.listdir(tmpdir):
-                    try:
-                        os.unlink(os.path.join(tmpdir, fn))
-                    except Exception:
-                        pass
-                os.rmdir(tmpdir)
-            except Exception:
-                pass
-
-    # Default behavior: generate files next to package (legacy)
-    docx_path = generate_docx_from_json(json_path, bulletin_id)
-    system = platform.system()
-    try:
-        if system == 'Windows':
-            try:
-                return convert_docx_to_pdf_windows(docx_path)
-            except Exception as win_error:
-                print(f"⚠️ Windows COM conversion failed, trying LibreOffice: {win_error}")
-                return convert_docx_to_pdf_libreoffice(docx_path)
+        # return_bytes mode
+        result = {}
+        if pdf_path and os.path.exists(pdf_path):
+            with open(pdf_path, "rb") as f:
+                result["pdf_bytes"] = f.read()
+            result["pdf_name"] = os.path.basename(pdf_path)
         else:
-            return convert_docx_to_pdf_libreoffice(docx_path)
-    except Exception as e:
-        # Keep DOCX for fallback; raise wrapped for caller
-        raise Exception(f"Error generating PDF: {e}")
+            result["pdf_bytes"] = None
+            result["pdf_name"] = None
+
+        if os.path.exists(docx_path):
+            with open(docx_path, "rb") as f:
+                result["docx_bytes"] = f.read()
+            result["docx_name"] = os.path.basename(docx_path)
+        else:
+            result["docx_bytes"] = None
+            result["docx_name"] = None
+
+        return result
+
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
